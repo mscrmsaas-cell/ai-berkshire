@@ -81,7 +81,7 @@ coverage.xml
 
 # -----------------------------------------------------------------------------
 # AI 模型文件 (不入仓库，通过 download_models.sh 拉取)
-# -----------------------------------------------------------------------------
+# 只排除 AI 模型二进制文件，不排除 app/models/ Python 源码目录
 *.onnx
 *.gguf
 *.pt
@@ -89,9 +89,9 @@ coverage.xml
 *.ckpt
 *.safetensors
 *.tflite
-*.bin
-models/
-!**/models/__init__.py
+bag-terminal/models/*.bin
+bag-terminal/models/*.onnx
+bag-terminal/models/*.gguf
 
 # -----------------------------------------------------------------------------
 # 环境变量 / 密钥 (绝不提交)
