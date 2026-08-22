@@ -1,0 +1,334 @@
+"""
+挎包终端 FastAPI 主入口
+
+功能:
+    - lifespan 生命周期管理 (启动/关闭 BLE 网桥、AI 模型、RAG 引擎)
+    - 路由注册 (健康检查、AI 检测、RAG 问答、设备管理)
+    - CORS 中间件
+    - structlog 结构化日志
+    - /health 健康检查端点
+"""
+
+from __future__ import annotations
+
+import asyncio
+from contextlib import asynccontextmanager
+from datetime import datetime, timezone
+from typing import Any
+
+import structlog
+from fastapi import FastAPI, Request
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+
+from app.config import get_settings
+
+logger = structlog.get_logger(__name__)
+
+
+# ---------------------------------------------------------------------------
+# 生命周期管理
+# ---------------------------------------------------------------------------
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """
+    FastAPI lifespan: 管理应用启动与关闭
+
+    启动阶段:
+        1. 加载配置
+        2. 初始化 AI 模型管理器 (加载 YOLO/嵌入/LLM)
+        3. 初始化 RAG 引擎 (Qdrant + 向量库)
+        4. 启动 BLE 网桥 (扫描并连接眼镜)
+        5. (可选) 启动涂鸦网关 / SaaS 同步
+
+    关闭阶段:
+        1. 停止 BLE 网桥 (断开所有连接)
+        2. 卸载 AI 模型
+        3. 关闭 RAG 引擎
+    """
+    settings = get_settings()
+    logger.info("bag_terminal.starting", env=settings.env, version="1.0.0")
+
+    # --- 启动阶段 ---
+    app.state.settings = settings
+    app.state.start_time = datetime.now(timezone.utc)
+
+    # 初始化 AI 模型管理器
+    try:
+        from app.ai.model_manager import ModelManager
+        model_manager = ModelManager(settings)
+        await model_manager.initialize()
+        app.state.model_manager = model_manager
+        logger.info("ai.models_loaded", yolo=settings.models.yolo.model_path)
+    except Exception as exc:
+        logger.error("ai.models_load_failed", error=str(exc))
+        app.state.model_manager = None
+
+    # 初始化 RAG 引擎
+    try:
+        from app.rag.local_rag import LocalRAG
+        rag_engine = LocalRAG(settings)
+        await rag_engine.initialize()
+        app.state.rag_engine = rag_engine
+        logger.info("rag.engine_initialized", collection=settings.rag.collection_name)
+    except Exception as exc:
+        logger.error("rag.engine_init_failed", error=str(exc))
+        app.state.rag_engine = None
+
+    # 启动 BLE 网桥
+    try:
+        from app.ble.ble_bridge import BleBridge
+        ble_bridge = BleBridge(settings)
+        app.state.ble_bridge = ble_bridge
+        # 后台任务启动扫描循环
+        ble_task = asyncio.create_task(ble_bridge.start())
+        app.state.ble_task = ble_task
+        logger.info("ble.bridge_started", max_connections=settings.ble.max_connections)
+    except Exception as exc:
+        logger.error("ble.bridge_start_failed", error=str(exc))
+        app.state.ble_bridge = None
+        app.state.ble_task = None
+
+    logger.info("bag_terminal.ready", host=settings.server.host, port=settings.server.port)
+
+    yield
+
+    # --- 关闭阶段 ---
+    logger.info("bag_terminal.shutting_down")
+
+    # 停止 BLE 网桥
+    if app.state.ble_bridge:
+        await app.state.ble_bridge.stop()
+    if app.state.ble_task:
+        app.state.ble_task.cancel()
+        try:
+            await app.state.ble_task
+        except asyncio.CancelledError:
+            pass
+
+    # 关闭 RAG 引擎
+    if app_state_rag := getattr(app.state, "rag_engine", None):
+        await app_state_rag.shutdown()
+
+    # 卸载 AI 模型
+    if model_mgr := getattr(app.state, "model_manager", None):
+        await model_mgr.shutdown()
+
+    logger.info("bag_terminal.stopped")
+
+
+# ---------------------------------------------------------------------------
+# FastAPI 应用
+# ---------------------------------------------------------------------------
+
+def create_app() -> FastAPI:
+    """创建 FastAPI 应用实例"""
+    settings = get_settings()
+
+    app = FastAPI(
+        title="铁路巡检智能眼镜 - 挎包终端",
+        description="BLE 网桥 + YOLOv8n 边缘推理 + 本地 RAG 引擎",
+        version="1.0.0",
+        lifespan=lifespan,
+        docs_url="/docs",
+        redoc_url="/redoc",
+    )
+
+    # CORS
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=settings.server.cors_origins,
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+
+    # --- 请求日志中间件 ---
+    @app.middleware("http")
+    async def request_logging(request: Request, call_next):
+        start = datetime.now(timezone.utc)
+        response = await call_next(request)
+        duration_ms = (datetime.now(timezone.utc) - start).total_seconds() * 1000
+        logger.info(
+            "http.request",
+            method=request.method,
+            path=request.url.path,
+            status=response.status_code,
+            duration_ms=round(duration_ms, 2),
+        )
+        return response
+
+    # --- 全局异常处理 ---
+    @app.exception_handler(Exception)
+    async def global_exception_handler(request: Request, exc: Exception):
+        logger.error(
+            "http.unhandled_exception",
+            path=request.url.path,
+            error=str(exc),
+            error_type=type(exc).__name__,
+        )
+        return JSONResponse(
+            status_code=500,
+            content={"error": "internal_server_error", "detail": str(exc)},
+        )
+
+    # --- 路由注册 ---
+    _register_routes(app)
+
+    return app
+
+
+def _register_routes(app: FastAPI) -> None:
+    """注册 API 路由"""
+
+    @app.get("/health", tags=["system"])
+    async def health() -> dict[str, Any]:
+        """健康检查端点"""
+        uptime_seconds = 0.0
+        if start_time := getattr(app.state, "start_time", None):
+            uptime_seconds = (datetime.now(timezone.utc) - start_time).total_seconds()
+
+        ble_status = "unknown"
+        if ble_bridge := getattr(app.state, "ble_bridge", None):
+            ble_status = "running" if ble_bridge.is_running else "stopped"
+
+        ai_status = "loaded" if getattr(app.state, "model_manager", None) else "unloaded"
+        rag_status = "ready" if getattr(app.state, "rag_engine", None) else "unavailable"
+
+        return {
+            "status": "ok",
+            "service": "bag-terminal",
+            "version": "1.0.0",
+            "uptime_seconds": round(uptime_seconds, 1),
+            "components": {
+                "ble_bridge": ble_status,
+                "ai_models": ai_status,
+                "rag_engine": rag_status,
+            },
+            "connected_glasses": len(getattr(app.state, "ble_bridge", None).connected_devices) if app.state.ble_bridge else 0,
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+        }
+
+    @app.get("/api/v1/ble/devices", tags=["ble"])
+    async def list_ble_devices() -> dict[str, Any]:
+        """列出已连接的 BLE 眼镜设备"""
+        ble_bridge = getattr(app.state, "ble_bridge", None)
+        if not ble_bridge:
+            return {"devices": []}
+        devices = []
+        for addr, client in ble_bridge.connected_devices.items():
+            devices.append({
+                "address": addr,
+                "name": client.device_name,
+                "connected": client.is_connected,
+                "battery_level": client.battery_level,
+                "rssi": client.rssi,
+            })
+        return {"devices": devices, "count": len(devices)}
+
+    @app.post("/api/v1/ai/detect", tags=["ai"])
+    async def detect_defects(request: Request) -> dict[str, Any]:
+        """
+        AI 缺陷检测端点
+
+        接收 JPEG 图片数据, 返回检测结果。
+        请求体: {"image_base64": "<base64编码的JPEG>", "device_address": "可选, 指定眼镜"}
+        """
+        model_manager = getattr(app.state, "model_manager", None)
+        if not model_manager or not model_manager.is_loaded:
+            return JSONResponse(
+                status_code=503,
+                content={"error": "ai_model_not_loaded", "detail": "YOLO 模型未加载"},
+            )
+
+        body = await request.json()
+        image_b64 = body.get("image_base64", "")
+        if not image_b64:
+            return JSONResponse(
+                status_code=400,
+                content={"error": "missing_image", "detail": "image_base64 字段缺失"},
+            )
+
+        import base64
+
+        try:
+            image_bytes = base64.b64decode(image_b64)
+        except Exception:
+            return JSONResponse(
+                status_code=400,
+                content={"error": "invalid_base64", "detail": "base64 解码失败"},
+            )
+
+        detections = await model_manager.detect(image_bytes)
+        return {
+            "detections": detections,
+            "count": len(detections),
+            "model_version": model_manager.current_version,
+        }
+
+    @app.post("/api/v1/rag/query", tags=["rag"])
+    async def rag_query(request: Request) -> dict[str, Any]:
+        """
+        RAG 问答端点
+
+        请求体: {"question": "铁路巡检相关问题"}
+        返回: {"answer": "...", "sources": [...], "confidence": 0.x}
+        """
+        rag_engine = getattr(app.state, "rag_engine", None)
+        if not rag_engine:
+            return JSONResponse(
+                status_code=503,
+                content={"error": "rag_unavailable", "detail": "RAG 引擎未初始化"},
+            )
+
+        body = await request.json()
+        question = body.get("question", "").strip()
+        if not question:
+            return JSONResponse(
+                status_code=400,
+                content={"error": "missing_question", "detail": "question 字段缺失"},
+            )
+
+        result = await rag_engine.query(question)
+        return result
+
+    @app.get("/api/v1/rag/sync", tags=["rag"])
+    async def trigger_rag_sync() -> dict[str, Any]:
+        """触发知识库增量同步"""
+        rag_engine = getattr(app.state, "rag_engine", None)
+        if not rag_engine:
+            return JSONResponse(
+                status_code=503,
+                content={"error": "rag_unavailable"},
+            )
+        synced = await rag_engine.sync_knowledge()
+        return {"synced_documents": synced}
+
+    @app.get("/api/v1/models/version", tags=["ai"])
+    async def model_version() -> dict[str, Any]:
+        """查询当前 AI 模型版本"""
+        model_manager = getattr(app.state, "model_manager", None)
+        if not model_manager:
+            return {"loaded": False}
+        return {
+            "loaded": model_manager.is_loaded,
+            "current_version": model_manager.current_version,
+            "available_versions": model_manager.available_versions,
+        }
+
+    @app.post("/api/v1/models/hot-update", tags=["ai"])
+    async def trigger_hot_update() -> dict[str, Any]:
+        """触发模型热更新检查"""
+        model_manager = getattr(app.state, "model_manager", None)
+        if not model_manager:
+            return JSONResponse(status_code=503, content={"error": "model_manager_unavailable"})
+        updated = await model_manager.check_and_update()
+        return {"updated": updated, "current_version": model_manager.current_version}
+
+
+# ---------------------------------------------------------------------------
+# 应用实例
+# ---------------------------------------------------------------------------
+
+app = create_app()

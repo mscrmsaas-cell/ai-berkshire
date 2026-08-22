@@ -1,0 +1,116 @@
+# ============================================================
+# 协议一致性测试 CI
+# 验证 BLE NUS 消息类型 C/Python 枚举值一致性 + 涂鸦 DP Schema 完整性
+# ============================================================
+name: Protocol Consistency Tests
+
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - 'shared/protocols/**'
+      - '.github/workflows/protocol-tests.yml'
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - 'shared/protocols/**'
+
+jobs:
+  protocol-tests:
+    name: Protocol Consistency
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pydantic pytest
+
+      - name: Run protocol consistency tests
+        working-directory: shared/protocols
+        run: |
+          python test_consistency.py --check-all --verbose
+
+      - name: Validate DP Schema
+        working-directory: shared/protocols
+        run: |
+          python -c "
+          import json
+          import sys
+
+          with open('tuya_dp_schema.json', 'r', encoding='utf-8') as f:
+              schema = json.load(f)
+
+          # 校验 DP 数量
+          dps = schema.get('data_points', {})
+          assert len(dps) == 14, f'Expected 14 DPs, got {len(dps)}'
+
+          # 校验无重复 ID
+          ids = set()
+          for dp_name, dp_info in dps.items():
+              dp_id = dp_info['id']
+              assert dp_id not in ids, f'Duplicate DP ID: {dp_id} ({dp_name})'
+              ids.add(dp_id)
+              # 校验必填字段
+              assert 'type' in dp_info, f'Missing type for {dp_name}'
+              assert 'direction' in dp_info, f'Missing direction for {dp_name}'
+              assert dp_info['direction'] in ('up', 'down'), f'Invalid direction for {dp_name}'
+
+          # 校验上行 10 个 + 下行 4 个
+          up_count = sum(1 for d in dps.values() if d['direction'] == 'up')
+          down_count = sum(1 for d in dps.values() if d['direction'] == 'down')
+          assert up_count == 10, f'Expected 10 up DPs, got {up_count}'
+          assert down_count == 4, f'Expected 4 down DPs, got {down_count}'
+
+          print(f'DP Schema validation passed: {len(dps)} DPs ({up_count} up, {down_count} down)')
+          "
+
+      - name: Validate message_types.py enum
+        working-directory: shared/protocols
+        run: |
+          python -c "
+          from message_types import MessageType
+          # 确认关键消息类型存在
+          expected = [
+              MessageType.HANDSHAKE_REQUEST,
+              MessageType.HANDSHAKE_ACK,
+              MessageType.HEARTBEAT,
+              MessageType.ACK,
+              MessageType.DEVICE_STATUS,
+              MessageType.CAMERA_ATTACHED,
+              MessageType.CAMERA_DETACHED,
+              MessageType.CAMERA_FRAME,
+              MessageType.DETECTION_REQUEST,
+              MessageType.DETECTION_RESULT,
+              MessageType.RAG_QUERY,
+              MessageType.RAG_ANSWER,
+              MessageType.INSPECTION_START,
+              MessageType.INSPECTION_END,
+              MessageType.TAKE_PHOTO,
+              MessageType.ALERT,
+              MessageType.ALERT_ACK,
+              MessageType.OTA_NOTIFY,
+              MessageType.OTA_REQUEST,
+              MessageType.OTA_DATA,
+              MessageType.OTA_STATUS,
+              MessageType.DISPLAY_TEXT,
+              MessageType.DISPLAY_CLEAR,
+          ]
+          for msg_type in expected:
+              print(f'  {msg_type.name} = 0x{msg_type.value:02X}')
+          print(f'Total message types: {len(list(MessageType))}')
+          "
+
+      - name: Run pytest on protocol module
+        working-directory: shared/protocols
+        run: |
+          python -m pytest test_consistency.py -v --tb=short

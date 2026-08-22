@@ -1,0 +1,127 @@
+{
+  "gateway": {
+    "device_id": "bf88xxxxxxxxxxxxxxxx",
+    "name": "railway-bag-terminal-gateway",
+    "pid": "m2r5xkxxxxxx",
+    "uuid": "tuyaxxxxxxxxxxxxxxxxxx",
+    "auth_key": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+    "firmware_version": "1.0.0",
+    "software_version": "1.0.0",
+    "hard_version": "1.0.0"
+  },
+  "mqtt": {
+    "broker": "m1.tuyacn.com",
+    "port": 1883,
+    "use_tls": false,
+    "keep_alive": 60,
+    "clean_session": true,
+    "qos": 1,
+    "client_id_prefix": "bag-term-"
+  },
+  "sub_devices": [
+    {
+      "local_id": "glasses_001",
+      "name": "巡检眼镜 #1",
+      "pid": "m2r5xkxxxx01",
+      "uuid": "tuya-glasses-001-uuid",
+      "auth_key": "glasses001-authkey-xxxxxxxxxxxxxxxx",
+      "category": "ry_ar",
+      "ble_address": "AA:BB:CC:DD:EE:01",
+      "dp_mapping": {
+        "1": "online_status",
+        "2": "battery_level",
+        "3": "charging_status",
+        "4": "camera_connected",
+        "5": "inspection_task_id",
+        "6": "device_mode",
+        "7": "ai_detection_summary",
+        "8": "telemetry",
+        "9": "firmware_version",
+        "10": "ble_signal"
+      }
+    },
+    {
+      "local_id": "glasses_002",
+      "name": "巡检眼镜 #2",
+      "pid": "m2r5xkxxxx02",
+      "uuid": "tuya-glasses-002-uuid",
+      "auth_key": "glasses002-authkey-xxxxxxxxxxxxxxxx",
+      "category": "ry_ar",
+      "ble_address": "AA:BB:CC:DD:EE:02",
+      "dp_mapping": {
+        "1": "online_status",
+        "2": "battery_level",
+        "3": "charging_status",
+        "4": "camera_connected",
+        "5": "inspection_task_id",
+        "6": "device_mode",
+        "7": "ai_detection_summary",
+        "8": "telemetry",
+        "9": "firmware_version",
+        "10": "ble_signal"
+      }
+    },
+    {
+      "local_id": "glasses_003",
+      "name": "巡检眼镜 #3",
+      "pid": "m2r5xkxxxx03",
+      "uuid": "tuya-glasses-003-uuid",
+      "auth_key": "glasses003-authkey-xxxxxxxxxxxxxxxx",
+      "category": "ry_ar",
+      "ble_address": "AA:BB:CC:DD:EE:03",
+      "dp_mapping": {
+        "1": "online_status",
+        "2": "battery_level",
+        "3": "charging_status",
+        "4": "camera_connected",
+        "5": "inspection_task_id",
+        "6": "device_mode",
+        "7": "ai_detection_summary",
+        "8": "telemetry",
+        "9": "firmware_version",
+        "10": "ble_signal"
+      }
+    },
+    {
+      "local_id": "glasses_004",
+      "name": "巡检眼镜 #4",
+      "pid": "m2r5xkxxxx04",
+      "uuid": "tuya-glasses-004-uuid",
+      "auth_key": "glasses004-authkey-xxxxxxxxxxxxxxxx",
+      "category": "ry_ar",
+      "ble_address": "AA:BB:CC:DD:EE:04",
+      "dp_mapping": {
+        "1": "online_status",
+        "2": "battery_level",
+        "3": "charging_status",
+        "4": "camera_connected",
+        "5": "inspection_task_id",
+        "6": "device_mode",
+        "7": "ai_detection_summary",
+        "8": "telemetry",
+        "9": "firmware_version",
+        "10": "ble_signal"
+      }
+    }
+  ],
+  "dp_schema": {
+    "upstream": {
+      "1": { "name": "online_status", "type": "bool", "desc": "设备在线状态" },
+      "2": { "name": "battery_level", "type": "value", "min": 0, "max": 100, "unit": "%", "desc": "电池电量" },
+      "3": { "name": "charging_status", "type": "bool", "desc": "充电状态" },
+      "4": { "name": "camera_connected", "type": "bool", "desc": "摄像头连接状态" },
+      "5": { "name": "inspection_task_id", "type": "string", "desc": "当前巡检任务ID" },
+      "6": { "name": "device_mode", "type": "enum", "range": ["standby", "inspecting", "alerting", "charging"], "desc": "设备模式" },
+      "7": { "name": "ai_detection_summary", "type": "string", "desc": "AI检测摘要JSON" },
+      "8": { "name": "telemetry", "type": "string", "desc": "遥测数据JSON" },
+      "9": { "name": "firmware_version", "type": "string", "desc": "固件版本号" },
+      "10": { "name": "ble_signal", "type": "value", "min": -100, "max": 0, "unit": "dBm", "desc": "BLE信号强度" }
+    },
+    "downstream": {
+      "101": { "name": "reboot", "type": "bool", "desc": "远程重启" },
+      "102": { "name": "mode_switch", "type": "enum", "range": ["standby", "inspecting", "charging"], "desc": "模式切换" },
+      "103": { "name": "brightness", "type": "value", "min": 0, "max": 100, "unit": "%", "desc": "亮度调节" },
+      "104": { "name": "volume", "type": "value", "min": 0, "max": 100, "unit": "%", "desc": "音量调节" }
+    }
+  }
+}

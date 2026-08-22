@@ -1,0 +1,30 @@
+# =============================================================================
+# glasses-firmware/partitions.csv
+# 铁路巡检智能眼镜 — ESP32-S3 Flash 分区表 (8MB Flash)
+# =============================================================================
+#
+# 分区布局 (总计 8MB = 0x800000):
+#
+#   偏移      名称          类型      子类型    大小      说明
+#   0x0000    -             (boot)   -         ~32KB     bootloader
+#   0x8000    -             (part)   -         3KB       分区表
+#   0xF000    phy_init      data      phy       4KB       PHY 初始化数据
+#   0x10000   nvs           data      nvs       16KB      非易失性存储 (配网/校准)
+#   0x14000   otadata       data      ota       8KB       OTA 数据区
+#   0x16000   -             (保留)   -         ~562KB    (factory 之前的空隙)
+#   0xA0000   factory       app       factory   1MB       工厂固件
+#   0x1A0000  ota_0         app       ota_0     2.5MB     OTA 镜像 A
+#   0x420000  ota_1         app       ota_1     2.5MB     OTA 镜像 B
+#   0x6A0000  spiffs        data      spiffs    1.5MB     SPIFFS 文件系统 (UI 资源/字体)
+#
+# 注: otadata 虽未在计划中列出, 但 OTA 双分区需要它。
+# =============================================================================
+
+# Name,     Type, SubType,  Offset,   Size,    Flags
+nvs,        data, nvs,      0x10000,  0x4000,
+phy_init,   data, phy,      0xF000,   0x1000,
+otadata,    data, ota,      0x14000,  0x2000,
+factory,    app,  factory,  0xA0000,  0x100000,
+ota_0,      app,  ota_0,    0x1A0000, 0x280000,
+ota_1,      app,  ota_1,    0x420000, 0x280000,
+spiffs,     data, spiffs,   0x6A0000, 0x160000,

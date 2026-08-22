@@ -1,0 +1,238 @@
+# =============================================================================
+# glasses-firmware/main/Kconfig.projbuild
+# 项目级配置菜单 — 眼镜硬件引脚和功能开关
+# =============================================================================
+# 在 menuconfig 中显示为 "Railway AR Glasses Configuration" 菜单。
+# =============================================================================
+
+menu "Railway AR Glasses Configuration"
+
+    # =========================================================================
+    # GC9A01 SPI LCD 配置
+    # =========================================================================
+    menu "GC9A01 LCD (SPI)"
+        config BSP_LCD_SPI_HOST
+            int "SPI Host Number"
+            default 2
+            range 0 2
+            help
+                SPI 主机号 (SPI2_HOST = 2)。
+
+        config BSP_LCD_SPI_FREQ_HZ
+            int "SPI Clock Frequency (Hz)"
+            default 40000000
+            range 1000000 80000000
+            help
+                SPI 时钟频率 (Hz)。GC9A01 支持最高 62.5MHz，推荐 40MHz。
+
+        config BSP_LCD_SPI_MOSI_GPIO
+            int "MOSI GPIO"
+            default 11
+            range 0 48
+            help
+                SPI MOSI (数据输出到 LCD) 引脚。
+
+        config BSP_LCD_SPI_CLK_GPIO
+            int "CLK GPIO"
+            default 9
+            range 0 48
+            help
+                SPI SCLK (时钟) 引脚。
+
+        config BSP_LCD_DC_GPIO
+            int "DC (Data/Command) GPIO"
+            default 8
+            range 0 48
+            help
+                数据/命令选择引脚 (Data/Command)。
+
+        config BSP_LCD_CS_GPIO
+            int "CS (Chip Select) GPIO"
+            default 10
+            range 0 48
+            help
+                片选引脚 (低有效)。
+
+        config BSP_LCD_RST_GPIO
+            int "RST (Reset) GPIO"
+            default 14
+            range 0 48
+            help
+                硬件复位引脚 (低有效)。
+
+        config BSP_LCD_BL_GPIO
+            int "Backlight GPIO"
+            default 2
+            range 0 48
+            help
+                背光控制引脚 (LEDC PWM 输出)。
+
+        config BSP_LCD_BL_PWM_FREQ_HZ
+            int "Backlight PWM Frequency (Hz)"
+            default 1000
+            range 100 20000
+            help
+                背光 PWM 调光频率 (Hz)。
+    endmenu
+
+    # =========================================================================
+    # I2S 音频配置 (INMP441 + MAX98357A)
+    # =========================================================================
+    menu "I2S Audio (INMP441 + MAX98357A)"
+        config BSP_I2S_NUM
+            int "I2S Port Number"
+            default 0
+            range 0 1
+            help
+                I2S 端口号 (I2S_NUM_0)。
+
+        config BSP_I2S_SAMPLE_RATE
+            int "Sample Rate (Hz)"
+            default 16000
+            range 8000 48000
+            help
+                音频采样率 (Hz)。INMP441 麦克风推荐 16kHz。
+
+        config BSP_I2S_TX_BCLK_GPIO
+            int "TX BCLK GPIO"
+            default 4
+            range 0 48
+            help
+                MAX98357A 播放: 位时钟 (Bit Clock)。
+
+        config BSP_I2S_TX_WS_GPIO
+            int "TX WS (LRCK) GPIO"
+            default 5
+            range 0 48
+            help
+                MAX98357A 播放: 字选择 (Word Select / LRCK)。
+
+        config BSP_I2S_TX_DOUT_GPIO
+            int "TX DOUT GPIO"
+            default 6
+            range 0 48
+            help
+                MAX98357A 播放: 数据输出。
+
+        config BSP_I2S_RX_BCLK_GPIO
+            int "RX BCLK GPIO"
+            default 15
+            range 0 48
+            help
+                INMP441 录音: 位时钟。
+
+        config BSP_I2S_RX_WS_GPIO
+            int "RX WS (LRCK) GPIO"
+            default 16
+            range 0 48
+            help
+                INMP441 录音: 字选择。
+
+        config BSP_I2S_RX_DIN_GPIO
+            int "RX DIN GPIO"
+            default 7
+            range 0 48
+            help
+                INMP441 录音: 数据输入。
+    endmenu
+
+    # =========================================================================
+    # TP4056 电池管理配置
+    # =========================================================================
+    menu "TP4056 Battery"
+        config BSP_BATT_ADC_UNIT
+            int "ADC Unit"
+            default 1
+            range 1 2
+            help
+                ADC 单元 (ADC1 = 1, ADC2 = 2)。ESP32-S3 推荐 ADC1。
+
+        config BSP_BATT_ADC_CHANNEL
+            int "ADC Channel"
+            default 4
+            range 0 9
+            help
+                电池电压检测 ADC 通道 (对应 GPIO)。
+
+        config BSP_BATT_CHRG_GPIO
+            int "CHRG GPIO"
+            default 41
+            range 0 48
+            help
+                TP4056 充电中引脚 (低有效, CHRG)。
+
+        config BSP_BATT_STDBY_GPIO
+            int "STDBY GPIO"
+            default 42
+            range 0 48
+            help
+                TP4056 充电完成引脚 (低有效, STDBY)。
+
+        config BSP_BATT_POLL_INTERVAL_MS
+            int "Poll Interval (ms)"
+            default 10000
+            range 1000 60000
+            help
+                电池电压轮询间隔 (毫秒)。
+
+        config BSP_BATT_LOW_THRESHOLD
+            int "Low Battery Threshold (%)"
+            default 15
+            range 5 30
+            help
+                低电量告警阈值 (百分比)。
+    endmenu
+
+    # =========================================================================
+    # Pogo Pin 热插拔检测
+    # =========================================================================
+    menu "Pogo Pin (Camera Hot-plug)"
+        config BSP_POGO_DETECT_GPIO
+            int "Detect GPIO"
+            default 40
+            range 0 48
+            help
+                Pogo Pin 检测引脚 (下降沿触发中断)。
+
+        config BSP_POGO_DEBOUNCE_MS
+            int "Debounce Time (ms)"
+            default 50
+            range 10 500
+            help
+                消抖时间 (毫秒)。
+    endmenu
+
+    # =========================================================================
+    # 涂鸦 IoT SDK 开关
+    # =========================================================================
+    menu "Tuya IoT Integration"
+        config TUYA_ENABLE
+            bool "Enable Tuya BLE SDK"
+            default n
+            help
+                启用涂鸦 BLE SDK 集成。未启用时仅使用 BLE NUS + REST API。
+                需要已初始化 tuya-iot-core-sdk 子模块。
+
+        config TUYA_PRODUCT_ID
+            string "Tuya Product ID"
+            default "railway_ar_glasses"
+            depends on TUYA_ENABLE
+            help
+                涂鸦平台产品 ID。
+
+        config TUYA_DEVICE_UUID
+            string "Tuya Device UUID"
+            default ""
+            depends on TUYA_ENABLE
+            help
+                涂鸦设备 UUID (烧录时注入)。
+
+        config TUYA_DEVICE_AUTH_KEY
+            string "Tuya Device Auth Key"
+            default ""
+            depends on TUYA_ENABLE
+            help
+                涂鸦设备认证密钥 (烧录时注入)。
+    endmenu
+
+endmenu

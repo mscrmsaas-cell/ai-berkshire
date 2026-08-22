@@ -1,0 +1,167 @@
+# =============================================================================
+# Railway Inspection AR Glasses — Embedded Monorepo .gitignore
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# ESP-IDF / ESP32 构建产物
+# -----------------------------------------------------------------------------
+build/
+sdkconfig.old
+sdkconfig.defaults.bak
+dependencies.lock
+managed_components/
+dependencies.db
+
+# ESP-IDF 编译中间文件
+*.o
+*.obj
+*.elf
+*.bin
+*.hex
+*.map
+*.dump
+*.image
+*.archive
+
+# 固件签名 / 下载镜像
+flash_args
+flasher_args.json
+download_all_args.txt
+bootloader.bin
+partition_table/*.bin
+ota_data_initial.bin
+
+# -----------------------------------------------------------------------------
+# Python
+# -----------------------------------------------------------------------------
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# 虚拟环境
+venv/
+.venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+
+# 分发包
+build/
+dist/
+*.egg-info/
+*.egg
+pip-wheel-metadata/
+develop-eggs/
+sdist/
+wheels/
+*.whl
+
+# 测试 / 覆盖率
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.nox/
+coverage.xml
+*.cover
+.hypothesis/
+
+# 类型检查
+.mypy_cache/
+.pyre/
+.pytype/
+.ruff_cache/
+
+# Jupyter
+.ipynb_checkpoints
+
+# -----------------------------------------------------------------------------
+# AI 模型文件 (不入仓库，通过 download_models.sh 拉取)
+# -----------------------------------------------------------------------------
+*.onnx
+*.gguf
+*.pt
+*.pth
+*.ckpt
+*.safetensors
+*.tflite
+*.bin
+models/
+!**/models/__init__.py
+
+# -----------------------------------------------------------------------------
+# 环境变量 / 密钥 (绝不提交)
+# -----------------------------------------------------------------------------
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.crt
+*.p12
+secrets/
+credentials.json
+tuya_keys/
+
+# -----------------------------------------------------------------------------
+# IDE / 编辑器
+# -----------------------------------------------------------------------------
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+*.sublime-project
+*.sublime-workspace
+.project
+.pydevproject
+.settings/
+
+# -----------------------------------------------------------------------------
+# CMake / 构建系统
+# -----------------------------------------------------------------------------
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+Makefile
+!Makefile
+CMakeUserPresets.json
+compile_commands.json
+.cache/
+
+# -----------------------------------------------------------------------------
+# Docker
+# -----------------------------------------------------------------------------
+docker-compose.override.yml
+
+# -----------------------------------------------------------------------------
+# 数据库 / 本地数据
+# -----------------------------------------------------------------------------
+*.db
+*.sqlite
+*.sqlite3
+*.db-journal
+*.db-wal
+*.db-shm
+data/
+uploads/
+*.log
+
+# -----------------------------------------------------------------------------
+# 文档构建
+# -----------------------------------------------------------------------------
+_site/
+docs/_build/
+
+# -----------------------------------------------------------------------------
+# 子模块内部构建产物 (子模块本身通过 .gitmodules 管理)
+# -----------------------------------------------------------------------------
+glasses-firmware/components/lvgl/build/
+glasses-firmware/components/esp32-camera/build/
+glasses-firmware/components/tuya-iot-core-sdk/build/

@@ -1,0 +1,132 @@
+# ============================================================
+# 眼镜固件 CI — ESP-IDF v5.1
+# 安装 ESP-IDF → 生成 DP 头文件 → idf.py build → 上传 artifact
+# ============================================================
+name: Glasses Firmware Build
+
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - 'glasses-firmware/**'
+      - 'shared/protocols/tuya_dp_schema.json'
+      - '.github/workflows/glasses-firmware.yml'
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - 'glasses-firmware/**'
+      - 'shared/protocols/tuya_dp_schema.json'
+  workflow_dispatch:
+
+env:
+  IDF_VERSION: v5.1.2
+  IDF_PATH: /opt/esp/idf
+
+jobs:
+  build-firmware:
+    name: ESP32-S3 Firmware Build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          submodules: 'true'
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      # ── 1. 安装 ESP-IDF v5.1 ──
+      - name: Install ESP-IDF
+        run: |
+          mkdir -p /opt/esp
+          cd /opt/esp
+          git clone --depth 1 --branch ${{ env.IDF_VERSION }} \
+            https://github.com/espressif/esp-idf.git idf
+          cd idf
+          ./install.sh esp32s3
+          echo "IDF_PATH=/opt/esp/idf" >> $GITHUB_ENV
+
+      # ── 2. 生成 DP 头文件 ──
+      - name: Generate Tuya DP header
+        run: |
+          python glasses-firmware/tools/generate_dp_header.py \
+            --schema shared/protocols/tuya_dp_schema.json \
+            --output glasses-firmware/main/tuya/tuya_dp_defs.h
+          echo "Generated tuya_dp_defs.h:"
+          head -50 glasses-firmware/main/tuya/tuya_dp_defs.h
+
+      # ── 3. 构建固件 ──
+      - name: Build firmware
+        run: |
+          . $IDF_PATH/export.sh
+          cd glasses-firmware
+          idf.py set-target esp32s3
+          idf.py build
+
+      # ── 4. 上传构建产物 ──
+      - name: Upload firmware artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: glasses-firmware-bin
+          path: |
+            glasses-firmware/build/glasses-firmware.bin
+            glasses-firmware/build/bootloader/bootloader.bin
+            glasses-firmware/build/partition_table/partition-table.bin
+          retention-days: 30
+
+      # ── 5. 上传构建日志 ──
+      - name: Upload build logs (on failure)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-logs
+          path: |
+            glasses-firmware/build/log/
+            glasses-firmware/build/config/
+          retention-days: 7
+
+  # ── 分区表验证 ──
+  verify-partitions:
+    name: Verify Partition Table
+    runs-on: ubuntu-latest
+    needs: build-firmware
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download firmware artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: glasses-firmware-bin
+          path: firmware
+
+      - name: Verify partition sizes
+        run: |
+          echo "Checking firmware binary sizes..."
+          FIRMWARE_BIN="firmware/glasses-firmware.bin"
+          BOOTLOADER_BIN="firmware/bootloader.bin"
+          PARTITION_BIN="firmware/partition-table.bin"
+
+          if [ -f "$FIRMWARE_BIN" ]; then
+            FIRMWARE_SIZE=$(stat -c%s "$FIRMWARE_BIN")
+            echo "  Firmware: $(( FIRMWARE_SIZE / 1024 )) KB"
+            # Factory 分区 1MB = 1048576 字节
+            if [ "$FIRMWARE_SIZE" -gt 1048576 ]; then
+              echo "WARNING: Firmware exceeds factory partition (1MB)!"
+              exit 1
+            fi
+          fi
+
+          if [ -f "$BOOTLOADER_BIN" ]; then
+            BOOT_SIZE=$(stat -c%s "$BOOTLOADER_BIN")
+            echo "  Bootloader: $(( BOOT_SIZE / 1024 )) KB"
+          fi
+
+          echo "Partition table verification passed!"
+          echo ""
+          echo "Partition layout (from partitions.csv):"
+          cat glasses-firmware/partitions.csv

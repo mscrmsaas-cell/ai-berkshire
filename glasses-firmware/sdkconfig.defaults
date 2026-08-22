@@ -1,0 +1,154 @@
+# =============================================================================
+# glasses-firmware/sdkconfig.defaults
+# 铁路巡检智能眼镜 — ESP32-S3 固件默认配置
+#
+# 生成 sdkconfig: idf.py reconfigure
+# 覆盖默认: idf.py menuconfig
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# 目标芯片
+# -----------------------------------------------------------------------------
+CONFIG_IDF_TARGET="esp32s3"
+
+# -----------------------------------------------------------------------------
+# Flash 配置 (8MB)
+# -----------------------------------------------------------------------------
+CONFIG_ESPTOOLPY_FLASHSIZE_8MB=y
+CONFIG_ESPTOOLPY_FLASHSIZE="8MB"
+CONFIG_ESPTOOLPY_FLASHMODE_DIO=y
+CONFIG_ESPTOOLPY_FLASHFREQ_80M=y
+CONFIG_ESPTOOLPY_FLASHSIZE_8MB=y
+
+# -----------------------------------------------------------------------------
+# 分区表 (自定义 partitions.csv)
+# -----------------------------------------------------------------------------
+CONFIG_PARTITION_TABLE_CUSTOM=y
+CONFIG_PARTITION_TABLE_CUSTOM_FILENAME="partitions.csv"
+CONFIG_PARTITION_TABLE_FILENAME="partitions.csv"
+
+# -----------------------------------------------------------------------------
+# PSRAM (ESP32-S3 片外 8MB PSRAM, 用于 LVGL 双缓冲和摄像头帧)
+# -----------------------------------------------------------------------------
+CONFIG_SPIRAM=y
+CONFIG_SPIRAM_MODE_OCT=y
+CONFIG_SPIRAM_SPEED_80M=y
+CONFIG_SPIRAM_BOOT_INIT=y
+CONFIG_SPIRAM_USE_MALLOC=y
+CONFIG_SPIRAM_MALLOC_ALWAYSINTERNAL=16384
+CONFIG_SPIRAM_TRY_ALLOCATE_WIFI_LWIP=y
+CONFIG_SPIRAM_ALLOW_BSS_SEG_EXTERNAL_MEMORY=y
+
+# -----------------------------------------------------------------------------
+# FreeRTOS
+# -----------------------------------------------------------------------------
+CONFIG_FREERTOS_HZ=1000
+CONFIG_FREERTOS_ENABLE_TICKLESS_MODE=y
+CONFIG_FREERTOS_TASK_NOTIFICATION_ARRAY_ENTRIES=4
+CONFIG_FREERTOS_USE_TRACE_FACILITY=y
+CONFIG_FREERTOS_GENERATE_RUN_TIME_STATS=y
+
+# -----------------------------------------------------------------------------
+# BLE (Bluetooth LE)
+# -----------------------------------------------------------------------------
+CONFIG_BT=y
+CONFIG_BT_BLE_ENABLED=y
+CONFIG_BT_BLE_42_FEATURES_SUPPORTED=y
+CONFIG_BT_NIMBLE_ENABLED=y
+CONFIG_BT_NIMBLE_ROLE_PERIPHERAL=y
+CONFIG_BT_NIMBLE_ROLE_CENTRAL=n
+CONFIG_BT_NIMBLE_MAX_CONNECTIONS=1
+CONFIG_BT_NIMBLE_MAX_BONDS=0
+CONFIG_BT_NIMBLE_ATT_PREFERRED_MTU=247
+CONFIG_BT_NIMBLE_NVS_PERSIST=y
+CONFIG_BT_NIMBLE_LOG_LEVEL_INFO=y
+CONFIG_BT_NIMBLE_SVC_GAP_DEVICE_NAME="RA-Glasses"
+CONFIG_BT_NIMBLE_HOST_TASK_STACK_SIZE=4096
+
+# -----------------------------------------------------------------------------
+# WiFi + BLE 共存
+# -----------------------------------------------------------------------------
+CONFIG_BT_NIMBLE_COEX=y
+
+# -----------------------------------------------------------------------------
+# LCD — GC9A01 SPI (RGB565, 240x240)
+# -----------------------------------------------------------------------------
+# SPI 主机配置
+CONFIG_SPI_MASTER_IN_IRAM=n
+# LCD 背光 PWM (LEDC)
+CONFIG_SOC_LEDC_SUPPORT_APB_CLOCK=y
+
+# -----------------------------------------------------------------------------
+# I2S 音频 (INMP441 麦 + MAX98357A 功放, 16kHz)
+# -----------------------------------------------------------------------------
+CONFIG_SOC_I2S_NUM=2
+# I2S 保留默认配置
+
+# -----------------------------------------------------------------------------
+# LVGL (如果组件存在)
+# -----------------------------------------------------------------------------
+CONFIG_LV_CONF_SKIP=y
+CONFIG_LV_COLOR_DEPTH_16=y
+CONFIG_LV_COLOR_16_SWAP=y
+CONFIG_LV_MEM_SIZE_KILOBYTES=32
+CONFIG_LV_USE_PERF_MONITOR=n
+CONFIG_LV_DISP_DEF_REFR_PERIOD=30
+CONFIG_LV_FONT_MONTSERRAT_14=y
+CONFIG_LV_FONT_MONTSERRAT_16=y
+CONFIG_LV_USE_LOG=y
+CONFIG_LV_LOG_LEVEL_WARN=y
+
+# -----------------------------------------------------------------------------
+# LWIP 网络栈
+# -----------------------------------------------------------------------------
+CONFIG_LWIP_MAX_SOCKETS=16
+CONFIG_LWIP_TCPIP_TASK_STACK_SIZE=8192
+
+# -----------------------------------------------------------------------------
+# NVS (非易失性存储)
+# -----------------------------------------------------------------------------
+CONFIG_NVS_ENCRYPTION=n
+
+# -----------------------------------------------------------------------------
+# OTA 升级
+# -----------------------------------------------------------------------------
+CONFIG_APP_ROLLBACK_ENABLE=y
+CONFIG_BOOTLOADER_APP_ROLLBACK_ENABLE=y
+
+# -----------------------------------------------------------------------------
+# 日志级别
+# -----------------------------------------------------------------------------
+CONFIG_LOG_DEFAULT_LEVEL_INFO=y
+CONFIG_LOG_COLORS=y
+CONFIG_LOG_TIMESTAMP_SOURCE_SYSTEM=y
+
+# -----------------------------------------------------------------------------
+# Wi-Fi (用于涂鸦 MQTT 网关时启用, 眼镜端默认关闭省电)
+# -----------------------------------------------------------------------------
+CONFIG_ESP_WIFI_ENABLED=n
+
+# -----------------------------------------------------------------------------
+# 电源管理 (动态调频)
+# -----------------------------------------------------------------------------
+CONFIG_PM_ENABLE=y
+CONFIG_PM_DFS_INIT_AUTO=y
+CONFIG_PM_POWER_LIGHT_SLEEP=y
+CONFIG_PM_POWER_DOWN_CPU=y
+
+# -----------------------------------------------------------------------------
+# 摄像头 (esp32-camera 组件)
+# -----------------------------------------------------------------------------
+CONFIG_CAMERA_OV2640=y
+CONFIG_CAMERA_TASK_STACK_SIZE=4096
+
+# -----------------------------------------------------------------------------
+# 涂鸦 IoT SDK (可选, 默认关闭)
+# -----------------------------------------------------------------------------
+CONFIG_TUYA_ENABLE=n
+
+# -----------------------------------------------------------------------------
+# 优化选项
+# -----------------------------------------------------------------------------
+CONFIG_COMPILER_OPTIMIZATION_SIZE=y
+CONFIG_COMPILER_STACK_CHECK_MODE_STRONG=y
+CONFIG_COMPILER_STACK_CHECK=y

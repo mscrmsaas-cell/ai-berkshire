@@ -1,0 +1,157 @@
+# =============================================================================
+# 挎包终端默认配置
+# 环境变量可覆盖同名键 (大写 + 下划线), 例如 BLE_SCAN_DURATION -> ble.scan_duration
+# =============================================================================
+
+# 服务配置
+server:
+  host: "0.0.0.0"
+  port: 8000
+  workers: 1
+  cors_origins:
+    - "*"
+  log_level: "INFO"
+
+# BLE 网桥配置
+ble:
+  # NUS Service UUID (Nordic UART Service)
+  service_uuid: "6e400001-b5a3-f393-e0a9-e50e24dcca9e"
+  # TX Characteristic (眼镜端通知, 挎包端接收)
+  tx_char_uuid: "6e400003-b5a3-f393-e0a9-e50e24dcca9e"
+  # RX Characteristic (挎包端写入, 眼镜端接收)
+  rx_char_uuid: "6e400002-b5a3-f393-e0a9-e50e24dcca9e"
+  # 扫描参数
+  scan_duration: 10          # 扫描时长 (秒)
+  scan_interval: 30          # 扫描间隔 (秒)
+  # 连接参数
+  max_connections: 4         # 最多并发连接的眼镜数
+  connection_timeout: 15     # 连接超时 (秒)
+  mtu: 247                   # 最大传输单元
+  # 重连参数
+  reconnect_interval: 5     # 重连间隔 (秒)
+  reconnect_max_retries: 10  # 最大重试次数
+  # 心跳
+  heartbeat_interval: 10    # 心跳间隔 (秒)
+  heartbeat_timeout: 30     # 心跳超时 (秒, 超过则断开重连)
+  # 帧协议
+  max_payload_size: 4096    # 单帧最大 payload (字节)
+  max_reassembly_packets: 64 # 分包重组最大包数
+  ack_timeout: 3            # ACK 超时 (秒)
+  ack_max_retries: 3        # ACK 最大重试次数
+  # 设备名称过滤 (空则匹配所有 NUS 设备)
+  device_name_prefix: "RailGlasses"
+
+# SaaS API 对接
+saas:
+  api_url: "http://saas.local:8000/api/v1"
+  api_timeout: 30
+  # JWT 认证
+  auth_username: "bag-terminal"
+  auth_password: ""
+  # 重试配置
+  max_retries: 3
+  retry_backoff: 2.0
+  # 同步优先级 (高 -> 低)
+  sync_priority:
+    - "alerts"
+    - "photos"
+    - "detections"
+    - "rag"
+    - "telemetry"
+
+# 涂鸦 IoT 配置
+tuya:
+  enabled: false
+  # MQTT broker
+  mqtt_broker: "m1.tuyacn.com"
+  mqtt_port: 1883
+  mqtt_client_id: ""
+  mqtt_username: ""
+  mqtt_password: ""
+  # 设备三元组 (从 tuya_device_config.json 加载)
+  device_config_path: "config/tuya_device_config.json"
+
+# AI 模型配置
+models:
+  model_dir: "models"
+  # YOLOv8n 铁路缺陷检测
+  yolo:
+    model_path: "models/yolov8n_railway.onnx"
+    input_size: 320          # 输入尺寸 320x320
+    confidence_threshold: 0.5
+    nms_threshold: 0.45
+    # 8 类铁路缺陷
+    classes:
+      - "rail_crack"           # 钢轨裂纹
+      - "rail_wear"            # 钢轨磨损
+      - "screw_loose"          # 螺栓松动
+      - "screw_missing"        # 螺栓缺失
+      - "plate_damage"         # 扣件板损
+      - "ballast_abnormal"     # 道砟异常
+      - "vegetation_intrusion"  # 植被侵入
+      - "foreign_object"       # 异物侵限
+    # 热更新配置
+    hot_update_interval: 300  # 检查更新间隔 (秒)
+    model_registry_url: ""    # 模型注册中心 URL
+
+  # BGE-small-zh 嵌入模型
+  embedding:
+    model_path: "models/bge-small-zh.onnx"
+    max_seq_length: 512
+    embedding_dim: 768
+    batch_size: 16
+
+  # Phi-3-mini Q4 量化 LLM
+  llm:
+    model_path: "models/phi-3-mini-4k-instruct-q4.gguf"
+    n_ctx: 4096          # 上下文窗口
+    n_gpu_layers: 0      # GPU 层数 (CM4 无 GPU, 纯 CPU)
+    n_threads: 4         # CPU 线程数
+    max_tokens: 512      # 最大生成 token 数
+    temperature: 0.3
+    top_p: 0.9
+    repeat_penalty: 1.1
+    stop_tokens:
+      - "<|end|>"
+      - "<|user|>"
+      - "<|assistant|>"
+
+# RAG 配置
+rag:
+  # Qdrant 本地模式
+  qdrant_path: "data/qdrant"
+  collection_name: "railway_knowledge"
+  embedding_dim: 768
+  # 检索参数
+  top_k: 5
+  score_threshold: 0.5
+  # 知识同步
+  sync_interval: 3600   # 同步间隔 (秒)
+  saas_dify_url: "http://saas.local:8000/api/v1/rag/datasets"
+  # 上下文组装
+  max_context_chars: 2000
+
+# 存储配置
+storage:
+  db_path: "data/bag_terminal.db"
+  photo_dir: "storage/photos"
+  video_dir: "storage/videos"
+  max_disk_usage_gb: 32
+  # 离线缓存
+  cache_max_retries: 5
+  cache_retry_backoff: 2.0
+
+# 充电管理配置
+charging:
+  i2c_bus: 1
+  i2c_address: 0x6B       # BQ25895 I2C 地址
+  poll_interval: 5         # 轮询间隔 (秒)
+  temp_threshold: 60.0     # 温度保护阈值 (°C)
+  low_battery_threshold: 20  # 低电量阈值 (%)
+
+# 网络/5G 配置
+network:
+  modem_port: "/dev/ttyUSB2"
+  modem_baud: 115200
+  apn: "cmnet"
+  check_interval: 30
