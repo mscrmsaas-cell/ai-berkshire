@@ -1,0 +1,998 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>铁路巡检智能眼镜 — 产品设计图纸（含电气）</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:"Noto Sans CJK SC","PingFang SC","Microsoft YaHei",system-ui,sans-serif;background:#0a0a0c;color:#e5e5e7;line-height:1.8;font-size:14px}
+.container{max-width:1100px;margin:0 auto;padding:48px 24px}
+.hero{text-align:center;padding:64px 0 48px;border-bottom:1px solid rgba(255,255,255,.08)}
+.hero h1{font-size:34px;font-weight:700;letter-spacing:-.02em;background:linear-gradient(135deg,#a9aeff,#6054f1,#22a5f7);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:8px}
+.hero .sub{font-size:16px;color:#a1a1aa}
+.hero .meta{font-size:12px;color:#52525b;margin-top:12px}
+.toc{padding:24px 0;border-bottom:1px solid rgba(255,255,255,.06)}
+.toc h2{font-size:18px;color:#cfd8ff;margin-bottom:12px}
+.toc ol{padding-left:20px}
+.toc li{margin:4px 0}
+.toc a{color:#a9aeff;text-decoration:none}
+.toc a:hover{text-decoration:underline}
+section{padding:48px 0;border-bottom:1px solid rgba(255,255,255,.06)}
+section h2{font-size:22px;font-weight:600;margin-bottom:6px;color:#cfd8ff;display:flex;align-items:center;gap:10px}
+section h2 .num{display:inline-flex;width:30px;height:30px;align-items:center;justify-content:center;border-radius:8px;background:rgba(96,84,241,.15);border:1px solid rgba(96,84,241,.3);font-size:13px;color:#a9aeff;flex-shrink:0}
+section h3{font-size:17px;font-weight:500;margin:20px 0 10px;color:#e5e5e7}
+section p{margin-bottom:10px;color:#d4d4d8}
+.diagram-box{background:#111114;border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:24px;margin:16px 0}
+.diagram-box svg{width:100%;height:auto;display:block}
+.diagram-title{text-align:center;font-size:13px;color:#71717a;margin-top:8px;padding-top:8px;border-top:1px solid rgba(255,255,255,.04)}
+.spec-table{width:100%;border-collapse:collapse;margin:12px 0;font-size:13px}
+.spec-table th,.spec-table td{padding:8px 12px;border:1px solid rgba(255,255,255,.08);text-align:left}
+.spec-table th{background:rgba(96,84,241,.08);color:#cfd8ff;font-weight:500;white-space:nowrap}
+.spec-table td{color:#d4d4d8}
+.spec-table tr:nth-child(even) td{background:rgba(255,255,255,.02)}
+.callout{background:rgba(96,84,241,.06);border:1px solid rgba(96,84,241,.15);border-radius:10px;padding:14px 18px;margin:12px 0;font-size:13px;color:#cfd8ff}
+.callout strong{color:#a9aeff}
+.legend-row{display:flex;gap:16px;flex-wrap:wrap;margin:8px 0;font-size:12px}
+.legend-item{display:flex;align-items:center;gap:6px;color:#a1a1aa}
+.legend-swatch{width:14px;height:14px;border-radius:3px;flex-shrink:0}
+.pin-table{width:100%;border-collapse:collapse;margin:8px 0;font-size:12px}
+.pin-table th,.pin-table td{padding:6px 10px;border:1px solid rgba(255,255,255,.08);text-align:center}
+.pin-table th{background:rgba(39,210,191,.08);color:#27d2bf}
+.pin-table td:first-child{font-family:monospace;color:#a9aeff;font-weight:500}
+footer{text-align:center;padding:32px 0;font-size:12px;color:#3f3f46}
+</style>
+</head>
+<body>
+<div class="container">
+
+<!-- ===== HERO ===== -->
+<div class="hero">
+<h1>铁路巡检智能眼镜 — 产品设计图纸</h1>
+<div class="sub">含电气原理图 | 多角度视图 | 拆解分层爆炸图</div>
+<div class="meta">2026-08-23 | 模块化设计 | ESP32-S3 + CM4 | 开源技术 & 通用协议</div>
+</div>
+
+<!-- ===== TOC ===== -->
+<div class="toc">
+<h2>目录</h2>
+<ol>
+<li><a href="#m1">模块 1：基础眼镜 — 多角度视图 & 电气</a></li>
+<li><a href="#m2">模块 2：磁吸摄像模块 — 多角度视图 & Pogo Pin</a></li>
+<li><a href="#m3">模块 3：挎包终端 — 多角度视图 & 内部布局 & 电气</a></li>
+<li><a href="#explode">产品拆解分层爆炸图 — 三模块组装关系</a></li>
+<li><a href="#schematic">系统电气原理图 — 电路框图 & 连接关系</a></li>
+</ol>
+</div>
+
+<!-- ===== MODULE 1: BASIC GLASSES ===== -->
+<section id="m1">
+<h2><span class="num">1</span>模块 1：基础眼镜 — 多角度视图</h2>
+<p>单只佩戴、镜片显示、耳机集成。ESP32-S3 主控，GC9A01 显示，I2S 音频，BLE NUS 通信，TP4056 电池管理。</p>
+
+<div class="legend-row">
+<div class="legend-item"><div class="legend-swatch" style="background:rgba(96,84,241,.15);border:1px solid #6054f1"></div>电子/MCU</div>
+<div class="legend-item"><div class="legend-swatch" style="background:rgba(39,210,191,.15);border:1px solid #27d2bf"></div>磁吸/连接器</div>
+<div class="legend-item"><div class="legend-swatch" style="background:rgba(34,165,247,.1);border:1px solid #22a5f7"></div>音频</div>
+<div class="legend-item"><div class="legend-swatch" style="background:rgba(255,193,7,.08);border:1px solid #ffc107"></div>电源/电池</div>
+<div class="legend-item"><div class="legend-swatch" style="background:rgba(132,204,22,.1);border:1px solid #84cc16"></div>显示/光学</div>
+<div class="legend-item"><div class="legend-swatch" style="background:rgba(255,255,255,.04);border:1px solid #52525b"></div>结构件</div>
+</div>
+
+<!-- 1A. Front View -->
+<h3>1A. 正视图（正面）</h3>
+<div class="diagram-box">
+<svg viewBox="0 0 720 320" xmlns="http://www.w3.org/2000/svg">
+<defs><marker id="a1" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="8" markerHeight="8" markerUnits="userSpaceOnUse" orient="auto"><path d="M1 1L7 4L1 7Z" fill="#71717a"/></marker></defs>
+<!-- Display lens -->
+<rect x="200" y="80" width="120" height="100" rx="10" fill="rgba(132,204,22,.08)" stroke="#84cc16" stroke-width="2"/>
+<text x="260" y="120" text-anchor="middle" fill="#84cc16" font-size="12" font-family="system-ui">GC9A01</text>
+<text x="260" y="138" text-anchor="middle" fill="#52525b" font-size="10">1.54" 240×240</text>
+<text x="260" y="155" text-anchor="middle" fill="#52525b" font-size="10">SPI LCD</text>
+<!-- Display frame bezel -->
+<rect x="190" y="70" width="140" height="120" rx="14" fill="none" stroke="#52525b" stroke-width="2.5"/>
+<!-- Temple arm (right side, going right) -->
+<rect x="330" y="100" width="180" height="16" rx="4" fill="rgba(255,255,255,.04)" stroke="#52525b" stroke-width="1.5"/>
+<!-- ESP32-S3 in temple -->
+<rect x="420" y="96" width="50" height="24" rx="3" fill="rgba(96,84,241,.12)" stroke="#6054f1" stroke-width="1.5"/>
+<text x="445" y="112" text-anchor="middle" fill="#a9aeff" font-size="9">ESP32-S3</text>
+<!-- Battery in temple end -->
+<rect x="480" y="96" width="30" height="24" rx="3" fill="rgba(255,193,7,.08)" stroke="#ffc107" stroke-width="1.5" opacity=".7"/>
+<text x="495" y="112" text-anchor="middle" fill="#ffc107" font-size="8">LiPo</text>
+<!-- Ear hook curve -->
+<path d="M510 108 Q530 108 528 128 Q525 142 510 138" fill="none" stroke="#52525b" stroke-width="3" stroke-linecap="round"/>
+<!-- I2S audio module in temple -->
+<rect x="360" y="118" width="40" height="14" rx="3" fill="rgba(34,165,247,.08)" stroke="#22a5f7" stroke-width="1"/>
+<text x="380" y="129" text-anchor="middle" fill="#22a5f7" font-size="7">I2S</text>
+<!-- Pogo Pin connector (top of frame) -->
+<circle cx="260" cy="65" r="8" fill="rgba(39,210,191,.15)" stroke="#27d2bf" stroke-width="2"/>
+<text x="260" y="55" text-anchor="middle" fill="#27d2bf" font-size="9">Pogo</text>
+<!-- BLE antenna area -->
+<rect x="390" y="92" width="20" height="8" rx="2" fill="rgba(96,84,241,.08)" stroke="#6054f1" stroke-width="1" stroke-dasharray="2 2"/>
+<text x="400" y="88" text-anchor="middle" fill="#a9aeff" font-size="7">BT</text>
+<!-- Labels -->
+<line x1="260" y1="80" x2="120" y2="50" stroke="#71717a" stroke-width=".5" stroke-dasharray="3 3" marker-end="url(#a1)"/>
+<text x="30" y="46" fill="#84cc16" font-size="12">① 显示屏</text>
+<text x="30" y="60" fill="#52525b" font-size="10">GC9A01 SPI</text>
+<line x1="260" y1="57" x2="120" y2="90" stroke="#71717a" stroke-width=".5" stroke-dasharray="3 3" marker-end="url(#a1)"/>
+<text x="30" y="86" fill="#27d2bf" font-size="12">② 磁吸 Pogo Pin</text>
+<line x1="445" y1="96" x2="580" y2="60" stroke="#71717a" stroke-width=".5" stroke-dasharray="3 3" marker-end="url(#a1)"/>
+<text x="585" y="56" fill="#a9aeff" font-size="12">③ ESP32-S3 MCU</text>
+<text x="585" y="70" fill="#52525b" font-size="10">双核 240MHz</text>
+<line x1="495" y1="96" x2="580" y2="100" stroke="#71717a" stroke-width=".5" stroke-dasharray="3 3" marker-end="url(#a1)"/>
+<text x="585" y="96" fill="#ffc107" font-size="12">④ 电池仓</text>
+<text x="585" y="110" fill="#52525b" font-size="10">3.7V 300mAh</text>
+<line x1="380" y1="132" x2="120" y2="160" stroke="#71717a" stroke-width=".5" stroke-dasharray="3 3" marker-end="url(#a1)"/>
+<text x="30" y="156" fill="#22a5f7" font-size="12">⑤ I2S 音频</text>
+<text x="30" y="170" fill="#52525b" font-size="10">MAX98357A</text>
+<line x1="510" y1="128" x2="580" y2="140" stroke="#71717a" stroke-width=".5" stroke-dasharray="3 3" marker-end="url(#a1)"/>
+<text x="585" y="136" fill="#52525b" font-size="12">⑥ 耳挂固定</text>
+<!-- Dimensions -->
+<line x1="190" y1="210" x2="510" y2="210" stroke="#71717a" stroke-width=".5"/>
+<text x="350" y="225" text-anchor="middle" fill="#71717a" font-size="10">160mm (镜框+镜腿前段)</text>
+<line x1="190" y1="70" x2="190" y2="190" stroke="#71717a" stroke-width=".5"/>
+<text x="175" y="135" text-anchor="middle" fill="#71717a" font-size="10" transform="rotate(-90 175 135)">50mm</text>
+<text x="360" y="280" text-anchor="middle" fill="#71717a" font-size="13">基础眼镜 — 正视图（正面）</text>
+</svg>
+</div>
+
+<!-- 1B. Side View -->
+<h3>1B. 侧视图（右侧剖面）</h3>
+<div class="diagram-box">
+<svg viewBox="0 0 720 300" xmlns="http://www.w3.org/2000/svg">
+<defs><marker id="a2" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="8" markerHeight="8" markerUnits="userSpaceOnUse" orient="auto"><path d="M1 1L7 4L1 7Z" fill="#71717a"/></marker></defs>
+<!-- Head profile (simplified) -->
+<path d="M80 140 Q60 120 70 90 Q90 50 150 45 Q200 40 230 55 Q250 70 255 100 L255 160 Q255 190 240 210 L225 230" fill="none" stroke="#3f3f46" stroke-width="1.5" stroke-linecap="round"/>
+<!-- Ear -->
+<path d="M225 140 Q240 135 245 150 Q243 170 230 175 Q220 172 223 155Z" fill="none" stroke="#3f3f46" stroke-width="1.5"/>
+<!-- Temple arm (from eye to behind ear) -->
+<path d="M160 110 L230 140 Q250 145 248 160 L240 180" fill="none" stroke="#52525b" stroke-width="4" stroke-linecap="round"/>
+<!-- Display module -->
+<rect x="120" y="95" width="42" height="30" rx="6" fill="rgba(132,204,22,.08)" stroke="#84cc16" stroke-width="2"/>
+<text x="141" y="114" text-anchor="middle" fill="#84cc16" font-size="9">LCD</text>
+<!-- Pogo Pin (top front) -->
+<circle cx="135" cy="82" r="6" fill="rgba(39,210,191,.15)" stroke="#27d2bf" stroke-width="1.5"/>
+<!-- ESP32 in temple -->
+<rect x="180" y="125" width="40" height="18" rx="3" fill="rgba(96,84,241,.12)" stroke="#6054f1" stroke-width="1.5"/>
+<text x="200" y="138" text-anchor="middle" fill="#a9aeff" font-size="8">ESP32</text>
+<!-- I2S speaker at ear -->
+<rect x="225" y="155" width="25" height="14" rx="3" fill="rgba(34,165,247,.08)" stroke="#22a5f7" stroke-width="1.5"/>
+<text x="237" y="166" text-anchor="middle" fill="#22a5f7" font-size="7">SPK</text>
+<!-- Battery at temple end -->
+<rect x="235" y="170" width="18" height="20" rx="3" fill="rgba(255,193,7,.08)" stroke="#ffc107" stroke-width="1.5" opacity=".7"/>
+<text x="244" y="183" text-anchor="middle" fill="#ffc107" font-size="7">BAT</text>
+<!-- TP4056 charge IC -->
+<rect x="170" y="145" width="25" height="12" rx="2" fill="rgba(255,193,7,.06)" stroke="#ffc107" stroke-width="1"/>
+<text x="182" y="154" text-anchor="middle" fill="#ffc107" font-size="6">TP4056</text>
+<!-- Adjustable segments on temple -->
+<line x1="195" y1="120" x2="195" y2="132" stroke="#71717a" stroke-width=".5" stroke-dasharray="2 2"/>
+<line x1="210" y1="125" x2="210" y2="137" stroke="#71717a" stroke-width=".5" stroke-dasharray="2 2"/>
+<text x="215" y="120" fill="#71717a" font-size="8">可调卡扣</text>
+<!-- Labels -->
+<line x1="141" y1="95" x2="60" y2="50" stroke="#71717a" stroke-width=".5" stroke-dasharray="3 3" marker-end="url(#a2)"/>
+<text x="10" y="45" fill="#84cc16" font-size="11">① 显示屏</text>
+<line x1="135" y1="76" x2="60" y2="30" stroke="#71717a" stroke-width=".5" stroke-dasharray="3 3" marker-end="url(#a2)"/>
+<text x="10" y="25" fill="#27d2bf" font-size="11">② Pogo Pin</text>
+<line x1="200" y1="125" x2="340" y2="70" stroke="#71717a" stroke-width=".5" stroke-dasharray="3 3" marker-end="url(#a2)"/>
+<text x="345" y="66" fill="#a9aeff" font-size="11">③ MCU (ESP32-S3)</text>
+<text x="345" y="80" fill="#52525b" font-size="9">双核 240MHz WiFi+BLE</text>
+<line x1="237" y1="155" x2="340" y2="120" stroke="#71717a" stroke-width=".5" stroke-dasharray="3 3" marker-end="url(#a2)"/>
+<text x="345" y="116" fill="#22a5f7" font-size="11">④ 骨传导扬声器</text>
+<text x="345" y="130" fill="#52525b" font-size="9">MAX98357A I2S</text>
+<line x1="244" y1="190" x2="340" y2="170" stroke="#71717a" stroke-width=".5" stroke-dasharray="3 3" marker-end="url(#a2)"/>
+<text x="345" y="166" fill="#ffc107" font-size="11">⑤ 电池 + 充电</text>
+<text x="345" y="180" fill="#52525b" font-size="9">300mAh + TP4056</text>
+<line x1="245" y1="175" x2="340" y2="210" stroke="#71717a" stroke-width=".5" stroke-dasharray="3 3" marker-end="url(#a2)"/>
+<text x="345" y="206" fill="#52525b" font-size="11">⑥ 耳挂末端</text>
+<text x="345" y="220" fill="#52525b" font-size="9">Scouter 式弯钩</text>
+<!-- BLE to bag -->
+<path d="M248 200 Q330 260 480 260" fill="none" stroke="#a9aeff" stroke-width="1.5" stroke-dasharray="6 4"/>
+<text x="360" y="255" fill="#a9aeff" font-size="10">BLE NUS 5.0</text>
+<rect x="480" y="240" width="100" height="40" rx="6" fill="rgba(34,165,247,.06)" stroke="#22a5f7" stroke-width="1.5"/>
+<text x="530" y="260" text-anchor="middle" fill="#22a5f7" font-size="11">挎包终端</text>
+<text x="360" y="285" text-anchor="middle" fill="#71717a" font-size="12">基础眼镜 — 侧视图（右侧剖面）</text>
+</svg>
+</div>
+
+<!-- 1C. Top View -->
+<h3>1C. 顶视图（俯视）</h3>
+<div class="diagram-box">
+<svg viewBox="0 0 720 240" xmlns="http://www.w3.org/2000/svg">
+<defs><marker id="a3" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="8" markerHeight="8" markerUnits="userSpaceOnUse" orient="auto"><path d="M1 1L7 4L1 7Z" fill="#71717a"/></marker></defs>
+<!-- Display area (top) -->
+<rect x="160" y="60" width="120" height="50" rx="8" fill="rgba(132,204,22,.06)" stroke="#84cc16" stroke-width="1.5"/>
+<text x="220" y="80" text-anchor="middle" fill="#84cc16" font-size="10">显示区域</text>
+<text x="220" y="95" text-anchor="middle" fill="#52525b" font-size="9">GC9A01 240×240</text>
+<!-- Pogo Pin -->
+<circle cx="220" cy="50" r="6" fill="rgba(39,210,191,.15)" stroke="#27d2bf" stroke-width="1.5"/>
+<text x="220" y="40" text-anchor="middle" fill="#27d2bf" font-size="8">Pogo Pin</text>
+<!-- Temple arm extending right -->
+<rect x="280" y="70" width="200" height="20" rx="4" fill="rgba(255,255,255,.03)" stroke="#52525b" stroke-width="1.5"/>
+<!-- ESP32 -->
+<rect x="330" y="65" width="45" height="30" rx="3" fill="rgba(96,84,241,.12)" stroke="#6054f1" stroke-width="1.5"/>
+<text x="352" y="83" text-anchor="middle" fill="#a9aeff" font-size="8">ESP32-S3</text>
+<!-- Battery -->
+<rect x="420" y="68" width="40" height="24" rx="3" fill="rgba(255,193,7,.08)" stroke="#ffc107" stroke-width="1.5" opacity=".7"/>
+<text x="440" y="83" text-anchor="middle" fill="#ffc107" font-size="8">BAT</text>
+<!-- TP4056 -->
+<rect x="385" y="92" width="25" height="10" rx="2" fill="rgba(255,193,7,.06)" stroke="#ffc107" stroke-width="1"/>
+<text x="397" y="100" text-anchor="middle" fill="#ffc107" font-size="6">TP4056</text>
+<!-- I2S audio -->
+<rect x="395" y="95" width="20" height="12" rx="2" fill="rgba(34,165,247,.08)" stroke="#22a5f7" stroke-width="1"/>
+<text x="405" y="104" text-anchor="middle" fill="#22a5f7" font-size="6">I2S</text>
+<!-- Ear hook -->
+<path d="M480 80 Q500 75 502 95 Q500 115 480 112" fill="none" stroke="#52525b" stroke-width="2.5" stroke-linecap="round"/>
+<!-- Adjustable segments -->
+<line x1="310" y1="65" x2="310" y2="95" stroke="#71717a" stroke-width=".5" stroke-dasharray="2 2"/>
+<line x1="320" y1="65" x2="320" y2="95" stroke="#71717a" stroke-width=".5" stroke-dasharray="2 2"/>
+<text x="315" y="60" text-anchor="middle" fill="#71717a" font-size="7">卡扣①</text>
+<!-- Labels -->
+<line x1="352" y1="65" x2="560" y2="45" stroke="#71717a" stroke-width=".5" stroke-dasharray="3 3" marker-end="url(#a3)"/>
+<text x="565" y="41" fill="#a9aeff" font-size="11">ESP32-S3</text>
+<text x="565" y="55" fill="#52525b" font-size="9">WiFi+BLE 双核</text>
+<line x1="440" y1="68" x2="560" y2="80" stroke="#71717a" stroke-width=".5" stroke-dasharray="3 3" marker-end="url(#a3)"/>
+<text x="565" y="76" fill="#ffc107" font-size="11">电池 300mAh</text>
+<line x1="220" y1="50" x2="80" y2="35" stroke="#71717a" stroke-width=".5" stroke-dasharray="3 3" marker-end="url(#a3)"/>
+<text x="10" y="31" fill="#27d2bf" font-size="11">Pogo Pin 接口</text>
+<line x1="405" y1="107" x2="560" y2="115" stroke="#71717a" stroke-width=".5" stroke-dasharray="3 3" marker-end="url(#a3)"/>
+<text x="565" y="111" fill="#22a5f7" font-size="11">I2S 音频</text>
+<line x1="315" y1="60" x2="80" y2="130" stroke="#71717a" stroke-width=".5" stroke-dasharray="3 3" marker-end="url(#a3)"/>
+<text x="10" y="126" fill="#71717a" font-size="11">可调卡扣 (3段)</text>
+<line x1="490" y1="112" x2="560" y2="150" stroke="#71717a" stroke-width=".5" stroke-dasharray="3 3" marker-end="url(#a3)"/>
+<text x="565" y="146" fill="#52525b" font-size="11">耳挂弯钩</text>
+<!-- Dimensions -->
+<line x1="160" y1="120" x2="502" y2="120" stroke="#71717a" stroke-width=".5"/>
+<text x="330" y="135" text-anchor="middle" fill="#71717a" font-size="10">~180mm 总长</text>
+<line x1="160" y1="60" x2="160" y2="115" stroke="#71717a" stroke-width=".5"/>
+<text x="148" y="90" text-anchor="middle" fill="#71717a" font-size="10" transform="rotate(-90 148 90)">50mm</text>
+<text x="360" y="175" text-anchor="middle" fill="#71717a" font-size="12">基础眼镜 — 顶视图（俯视，组件布局）</text>
+<!-- Weight -->
+<text x="360" y="200" text-anchor="middle" fill="#52525b" font-size="11">重量目标: &lt;50g | 参考: dynaEdge AR100 = 47g</text>
+</svg>
+</div>
+
+<!-- 1D. Electrical Block Diagram -->
+<h3>1D. 电气框图（基础眼镜）</h3>
+<div class="diagram-box">
+<svg viewBox="0 0 720 400" xmlns="http://www.w3.org/2000/svg">
+<defs><marker id="a4" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="8" markerHeight="8" markerUnits="userSpaceOnUse" orient="auto"><path d="M1 1L7 4L1 7Z" fill="#71717a"/></marker></defs>
+<!-- ESP32-S3 center -->
+<rect x="270" y="150" width="120" height="60" rx="8" fill="rgba(96,84,241,.15)" stroke="#6054f1" stroke-width="2"/>
+<text x="330" y="175" text-anchor="middle" fill="#a9aeff" font-size="13" font-weight="500">ESP32-S3</text>
+<text x="330" y="192" text-anchor="middle" fill="#52525b" font-size="10">双核 240MHz</text>
+<text x="330" y="204" text-anchor="middle" fill="#52525b" font-size="10">WiFi + BLE 5.0</text>
+<!-- Display -->
+<rect x="100" y="150" width="100" height="50" rx="6" fill="rgba(132,204,22,.08)" stroke="#84cc16" stroke-width="1.5"/>
+<text x="150" y="170" text-anchor="middle" fill="#84cc16" font-size="11">GC9A01 LCD</text>
+<text x="150" y="185" text-anchor="middle" fill="#52525b" font-size="9">240×240 SPI</text>
+<!-- I2S Audio IN (Mic) -->
+<rect x="100" y="230" width="100" height="45" rx="6" fill="rgba(34,165,247,.08)" stroke="#22a5f7" stroke-width="1.5"/>
+<text x="150" y="248" text-anchor="middle" fill="#22a5f7" font-size="11">INMP441</text>
+<text x="150" y="262" text-anchor="middle" fill="#52525b" font-size="9">I2S 麦克风</text>
+<!-- I2S Audio OUT -->
+<rect x="100" y="285" width="100" height="45" rx="6" fill="rgba(34,165,247,.08)" stroke="#22a5f7" stroke-width="1.5"/>
+<text x="150" y="303" text-anchor="middle" fill="#22a5f7" font-size="11">MAX98357A</text>
+<text x="150" y="317" text-anchor="middle" fill="#52525b" font-size="9">I2S 功放+骨传导</text>
+<!-- Battery + TP4056 -->
+<rect x="270" y="290" width="120" height="55" rx="6" fill="rgba(255,193,7,.08)" stroke="#ffc107" stroke-width="1.5" opacity=".7"/>
+<text x="330" y="308" text-anchor="middle" fill="#ffc107" font-size="11">TP4056 + DW01</text>
+<text x="330" y="322" text-anchor="middle" fill="#52525b" font-size="9">充电管理 + 保护</text>
+<text x="330" y="336" text-anchor="middle" fill="#52525b" font-size="9">3.7V 300mAh LiPo</text>
+<!-- Pogo Pin Camera -->
+<rect x="270" y="80" width="120" height="50" rx="6" fill="rgba(39,210,191,.1)" stroke="#27d2bf" stroke-width="1.5"/>
+<text x="330" y="100" text-anchor="middle" fill="#27d2bf" font-size="11">OV2640 摄像头</text>
+<text x="330" y="115" text-anchor="middle" fill="#52525b" font-size="9">磁吸 Pogo Pin (DVP)</text>
+<!-- BLE -->
+<rect x="460" y="150" width="100" height="50" rx="6" fill="rgba(96,84,241,.1)" stroke="#6054f1" stroke-width="1.5"/>
+<text x="510" y="170" text-anchor="middle" fill="#a9aeff" font-size="11">NimBLE</text>
+<text x="510" y="185" text-anchor="middle" fill="#52525b" font-size="9">BLE 5.0 NUS</text>
+<!-- Tuya BLE -->
+<rect x="460" y="80" width="100" height="45" rx="6" fill="rgba(96,84,241,.06)" stroke="#6054f1" stroke-width="1" stroke-dasharray="4 2"/>
+<text x="510" y="100" text-anchor="middle" fill="#a9aeff" font-size="10">涂鸦 BLE</text>
+<text x="510" y="113" text-anchor="middle" fill="#52525b" font-size="8">(可选)</text>
+<!-- Tuya MQTT (via bag) -->
+<rect x="460" y="230" width="100" height="45" rx="6" fill="rgba(96,84,241,.06)" stroke="#6054f1" stroke-width="1" stroke-dasharray="4 2"/>
+<text x="510" y="248" text-anchor="middle" fill="#a9aeff" font-size="10">涂鸦 MQTT</text>
+<text x="510" y="262" text-anchor="middle" fill="#52525b" font-size="8">(经挎包)</text>
+<!-- Connections -->
+<line x1="200" y1="175" x2="270" y2="175" stroke="#71717a" stroke-width="1.5" marker-end="url(#a4)"/>
+<text x="235" y="170" text-anchor="middle" fill="#71717a" font-size="9">SPI</text>
+<line x1="200" y1="252" x2="270" y2="195" stroke="#71717a" stroke-width="1.5" marker-end="url(#a4)"/>
+<text x="225" y="230" fill="#71717a" font-size="9">I2S IN</text>
+<line x1="200" y1="307" x2="270" y2="200" stroke="#71717a" stroke-width="1.5" marker-end="url(#a4)"/>
+<text x="225" y="265" fill="#71717a" font-size="9">I2S OUT</text>
+<line x1="330" y1="290" x2="330" y2="210" stroke="#ffc107" stroke-width="1.5" marker-end="url(#a4)"/>
+<text x="340" y="255" fill="#ffc107" font-size="9">3.3V/5V</text>
+<line x1="330" y1="130" x2="330" y2="150" stroke="#27d2bf" stroke-width="1.5" marker-end="url(#a4)"/>
+<text x="340" y="143" fill="#27d2bf" font-size="9">DVP+SCCB</text>
+<line x1="390" y1="175" x2="460" y2="175" stroke="#a9aeff" stroke-width="1.5" marker-end="url(#a4)"/>
+<text x="425" y="170" text-anchor="middle" fill="#a9aeff" font-size="9">UART</text>
+<line x1="390" y1="120" x2="460" y2="100" stroke="#a9aeff" stroke-width="1" stroke-dasharray="4 2" marker-end="url(#a4)"/>
+<line x1="390" y1="190" x2="460" y2="245" stroke="#a9aeff" stroke-width="1" stroke-dasharray="4 2" marker-end="url(#a4)"/>
+<!-- USB-C charging -->
+<rect x="100" y="80" width="100" height="45" rx="6" fill="rgba(255,193,7,.06)" stroke="#ffc107" stroke-width="1"/>
+<text x="150" y="98" text-anchor="middle" fill="#ffc107" font-size="10">USB-C</text>
+<text x="150" y="112" text-anchor="middle" fill="#52525b" font-size="9">充电口 5V/2A</text>
+<line x1="200" y1="102" x2="270" y2="155" stroke="#ffc107" stroke-width="1.5" marker-end="url(#a4)"/>
+<text x="225" y="120" fill="#ffc107" font-size="9">5V</text>
+<text x="360" y="380" text-anchor="middle" fill="#71717a" font-size="13">基础眼镜 — 电气框图</text>
+</svg>
+</div>
+
+<table class="spec-table">
+<tr><th>组件</th><th>型号</th><th>接口</th><th>功耗</th></tr>
+<tr><td>MCU</td><td>ESP32-S3 (双核 240MHz)</td><td>WiFi + BLE 5.0</td><td>~80mA</td></tr>
+<tr><td>显示屏</td><td>GC9A01 1.54" 240×240</td><td>SPI (4-wire)</td><td>~20mA</td></tr>
+<tr><td>麦克风</td><td>INMP441</td><td>I2S</td><td>~2mA</td></tr>
+<tr><td>扬声器</td><td>MAX98357A + 骨传导</td><td>I2S</td><td>~10mA</td></tr>
+<tr><td>摄像头</td><td>OV2640 2MP (磁吸)</td><td>DVP + SCCB</td><td>~120mA</td></tr>
+<tr><td>充电 IC</td><td>TP4056 + DW01</td><td>USB-C 5V/2A</td><td>—</td></tr>
+<tr><td>电池</td><td>3.7V 300mAh LiPo</td><td>—</td><td>~1.1Wh</td></tr>
+<tr><td>BLE 协议</td><td>NimBLE NUS (从设备)</td><td>UART over BLE</td><td>—</td></tr>
+<tr><td>IoT (可选)</td><td>涂鸦 BLE SDK</td><td>BLE</td><td>—</td></tr>
+</table>
+</section>
+
+<!-- ===== MODULE 2: CAMERA ===== -->
+<section id="m2">
+<h2><span class="num">2</span>模块 2：磁吸摄像模块 — 多角度视图</h2>
+<p>OV2640 磁吸热插拔模块。N52 钕磁铁四角自对准，5-Pin Pogo Pin 电气连接。</p>
+
+<!-- 2A. Front View -->
+<h3>2A. 正视图（镜头面）</h3>
+<div class="diagram-box">
+<svg viewBox="0 0 720 280" xmlns="http://www.w3.org/2000/svg">
+<defs><marker id="b1" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="8" markerHeight="8" markerUnits="userSpaceOnUse" orient="auto"><path d="M1 1L7 4L1 7Z" fill="#71717a"/></marker></defs>
+<!-- Module body -->
+<rect x="250" y="60" width="120" height="100" rx="10" fill="rgba(39,210,191,.06)" stroke="#27d2bf" stroke-width="2"/>
+<!-- Camera lens -->
+<circle cx="310" cy="110" r="28" fill="rgba(20,20,30,.8)" stroke="#3f3f46" stroke-width="2"/>
+<circle cx="310" cy="110" r="18" fill="rgba(10,10,20,.9)" stroke="#52525b" stroke-width="1"/>
+<circle cx="310" cy="110" r="8" fill="rgba(0,0,0,1)"/>
+<text x="310" y="112" text-anchor="middle" fill="#3f3f46" font-size="6">OV2640</text>
+<!-- Magnet corners -->
+<circle cx="260" cy="70" r="6" fill="rgba(96,84,241,.2)" stroke="#6054f1" stroke-width="1.5"/>
+<circle cx="360" cy="70" r="6" fill="rgba(96,84,241,.2)" stroke="#6054f1" stroke-width="1.5"/>
+<circle cx="260" cy="150" r="6" fill="rgba(96,84,241,.2)" stroke="#6054f1" stroke-width="1.5"/>
+<circle cx="360" cy="150" r="6" fill="rgba(96,84,241,.2)" stroke="#6054f1" stroke-width="1.5"/>
+<!-- Pogo Pin (5 pins, center bottom) -->
+<circle cx="295" cy="155" r="2.5" fill="#27d2bf"/>
+<circle cx="303" cy="155" r="2.5" fill="#27d2bf"/>
+<circle cx="311" cy="155" r="2.5" fill="#27d2bf"/>
+<circle cx="319" cy="155" r="2.5" fill="#27d2bf"/>
+<circle cx="327" cy="155" r="2.5" fill="#27d2bf"/>
+<!-- Labels -->
+<line x1="282" y1="110" x2="150" y2="80" stroke="#71717a" stroke-width=".5" stroke-dasharray="3 3" marker-end="url(#b1)"/>
+<text x="30" y="76" fill="#27d2bf" font-size="12">① OV2640 镜头</text>
+<text x="30" y="90" fill="#52525b" font-size="10">2MP 1600×1200 DVP</text>
+<line x1="260" y1="70" x2="150" y2="40" stroke="#71717a" stroke-width=".5" stroke-dasharray="3 3" marker-end="url(#b1)"/>
+<text x="30" y="36" fill="#6054f1" font-size="12">② N52 钕磁铁 ×4</text>
+<text x="30" y="50" fill="#52525b" font-size="10">四角对称自对准</text>
+<line x1="311" y1="155" x2="480" y2="180" stroke="#71717a" stroke-width=".5" stroke-dasharray="3 3" marker-end="url(#b1)"/>
+<text x="485" y="176" fill="#27d2bf" font-size="12">③ 5-Pin Pogo Pin</text>
+<text x="485" y="190" fill="#52525b" font-size="10">弹簧式公头</text>
+<!-- Dimensions -->
+<line x1="250" y1="180" x2="370" y2="180" stroke="#71717a" stroke-width=".5"/>
+<text x="310" y="195" text-anchor="middle" fill="#71717a" font-size="10">30mm</text>
+<line x1="240" y1="60" x2="240" y2="160" stroke="#71717a" stroke-width=".5"/>
+<text x="230" y="115" text-anchor="middle" fill="#71717a" font-size="10" transform="rotate(-90 230 115)">25mm</text>
+<text x="360" y="240" text-anchor="middle" fill="#71717a" font-size="13">磁吸摄像模块 — 正视图（镜头面）</text>
+</svg>
+</div>
+
+<!-- 2B. Side View -->
+<h3>2B. 侧视图（厚度方向）</h3>
+<div class="diagram-box">
+<svg viewBox="0 0 720 200" xmlns="http://www.w3.org/2000/svg">
+<defs><marker id="b2" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="8" markerHeight="8" markerUnits="userSpaceOnUse" orient="auto"><path d="M1 1L7 4L1 7Z" fill="#71717a"/></marker></defs>
+<!-- Module side profile -->
+<rect x="200" y="60" width="100" height="50" rx="8" fill="rgba(39,210,191,.06)" stroke="#27d2bf" stroke-width="2"/>
+<text x="250" y="80" text-anchor="middle" fill="#27d2bf" font-size="10">摄像模块</text>
+<text x="250" y="95" text-anchor="middle" fill="#52525b" font-size="8">PCB + 镜头座</text>
+<!-- Lens protrusion -->
+<rect x="290" y="70" width="25" height="25" rx="4" fill="rgba(20,20,30,.6)" stroke="#3f3f46" stroke-width="1.5"/>
+<text x="302" y="85" text-anchor="middle" fill="#52525b" font-size="7">镜头</text>
+<!-- Pogo Pin (left side, spring-loaded) -->
+<rect x="170" y="72" width="30" height="20" rx="3" fill="rgba(39,210,191,.1)" stroke="#27d2bf" stroke-width="1.5"/>
+<line x1="170" y1="82" x2="160" y2="82" stroke="#27d2bf" stroke-width="2"/>
+<text x="155" y="86" text-anchor="end" fill="#27d2bf" font-size="8">Pogo</text>
+<!-- Magnet (top and bottom) -->
+<circle cx="210" cy="62" r="5" fill="rgba(96,84,241,.2)" stroke="#6054f1" stroke-width="1.5"/>
+<circle cx="290" cy="62" r="5" fill="rgba(96,84,241,.2)" stroke="#6054f1" stroke-width="1.5"/>
+<circle cx="210" cy="108" r="5" fill="rgba(96,84,241,.2)" stroke="#6054f1" stroke-width="1.5"/>
+<circle cx="290" cy="108" r="5" fill="rgba(96,84,241,.2)" stroke="#6054f1" stroke-width="1.5"/>
+<!-- Glasses frame (mating surface, dashed) -->
+<rect x="100" y="55" width="60" height="60" rx="6" fill="none" stroke="#52525b" stroke-width="1.5" stroke-dasharray="4 3"/>
+<text x="130" y="48" text-anchor="middle" fill="#52525b" font-size="9">眼镜镜框</text>
+<!-- Gap annotation -->
+<line x1="160" y1="40" x2="170" y2="40" stroke="#71717a" stroke-width=".5"/>
+<text x="165" y="35" text-anchor="middle" fill="#71717a" font-size="8">0.5mm</text>
+<!-- Labels -->
+<line x1="250" y1="60" x2="420" y2="40" stroke="#71717a" stroke-width=".5" stroke-dasharray="3 3" marker-end="url(#b2)"/>
+<text x="425" y="36" fill="#27d2bf" font-size="11">模块本体</text>
+<text x="425" y="50" fill="#52525b" font-size="9">PCB 8层 FR4</text>
+<line x1="300" y1="82" x2="420" y2="82" stroke="#71717a" stroke-width=".5" stroke-dasharray="3 3" marker-end="url(#b2)"/>
+<text x="425" y="78" fill="#52525b" font-size="11">镜头突出</text>
+<text x="425" y="92" fill="#52525b" font-size="9">M12 螺纹座</text>
+<line x1="155" y1="82" x2="60" y2="82" stroke="#71717a" stroke-width=".5" stroke-dasharray="3 3" marker-end="url(#b2)"/>
+<text x="10" y="78" fill="#27d2bf" font-size="11">Pogo Pin</text>
+<text x="10" y="92" fill="#52525b" font-size="9">弹簧公头</text>
+<line x1="250" cy="108" x2="420" y2="120" stroke="#71717a" stroke-width=".5" stroke-dasharray="3 3" marker-end="url(#b2)"/>
+<text x="425" y="116" fill="#6054f1" font-size="11">磁铁 ×4</text>
+<text x="425" y="130" fill="#52525b" font-size="9">N52 钕磁铁</text>
+<!-- Dimensions -->
+<line x1="170" y1="130" x2="315" y2="130" stroke="#71717a" stroke-width=".5"/>
+<text x="240" y="145" text-anchor="middle" fill="#71717a" font-size="10">厚度 ~12mm (含镜头突出)</text>
+<text x="360" y="175" text-anchor="middle" fill="#71717a" font-size="13">磁吸摄像模块 — 侧视图（厚度方向）</text>
+</svg>
+</div>
+
+<!-- 2C. Pogo Pin Pinout -->
+<h3>2C. Pogo Pin 引脚定义</h3>
+<div class="diagram-box">
+<svg viewBox="0 0 720 280" xmlns="http://www.w3.org/2000/svg">
+<!-- Pogo Pin layout -->
+<rect x="200" y="60" width="200" height="80" rx="8" fill="rgba(39,210,191,.06)" stroke="#27d2bf" stroke-width="2"/>
+<text x="300" y="50" text-anchor="middle" fill="#27d2bf" font-size="12">Pogo Pin 接口面（5-Pin 布局）</text>
+<!-- 5 pins -->
+<circle cx="230" cy="100" r="6" fill="#27d2bf"/><text x="230" y="120" text-anchor="middle" fill="#a9aeff" font-size="10">1</text>
+<circle cx="260" cy="100" r="6" fill="#27d2bf"/><text x="260" y="120" text-anchor="middle" fill="#a9aeff" font-size="10">2</text>
+<circle cx="290" cy="100" r="6" fill="#27d2bf"/><text x="290" y="120" text-anchor="middle" fill="#a9aeff" font-size="10">3</text>
+<circle cx="320" cy="100" r="6" fill="#27d2bf"/><text x="320" y="120" text-anchor="middle" fill="#a9aeff" font-size="10">4</text>
+<circle cx="350" cy="100" r="6" fill="#27d2bf"/><text x="350" y="120" text-anchor="middle" fill="#a9aeff" font-size="10">5</text>
+<!-- Labels -->
+<text x="230" y="140" text-anchor="middle" fill="#71717a" font-size="9">DVP[0]</text>
+<text x="260" y="140" text-anchor="middle" fill="#71717a" font-size="9">DVP[1]</text>
+<text x="290" y="140" text-anchor="middle" fill="#71717a" font-size="9">SCCB</text>
+<text x="320" y="140" text-anchor="middle" fill="#71717a" font-size="9">PWR</text>
+<text x="350" y="140" text-anchor="middle" fill="#71717a" font-size="9">GND</text>
+<!-- Callout to table -->
+<line x1="400" y1="100" x2="480" y2="100" stroke="#71717a" stroke-width=".5" stroke-dasharray="3 3"/>
+<text x="490" y="96" fill="#71717a" font-size="10">→ 引脚表</text>
+<text x="360" y="180" text-anchor="middle" fill="#71717a" font-size="12">Pogo Pin 物理布局示意</text>
+</svg>
+</div>
+
+<table class="pin-table">
+<tr><th>Pin</th><th>名称</th><th>方向</th><th>功能</th><th>电气</th></tr>
+<tr><td>1</td><td>DVP_D0</td><td>双向</td><td>DVP 并行数据线 D0 (通过 Pogo Pin 传输高速并行数据)</td><td>3.3V CMOS</td></tr>
+<tr><td>2</td><td>DVP_D1</td><td>双向</td><td>DVP 并行数据线 D1</td><td>3.3V CMOS</td></tr>
+<tr><td>3</td><td>SCCB_SDA</td><td>双向</td><td>SCCB (I2C 兼容) 数据线 — 摄像头寄存器配置</td><td>3.3V OD</td></tr>
+<tr><td>4</td><td>VDD_3V3</td><td>电源</td><td>3.3V 供电 (从眼镜端供电)</td><td>3.3V / 150mA</td></tr>
+<tr><td>5</td><td>GND</td><td>地</td><td>公共地 + GPIO 检测 (热插拔)</td><td>—</td></tr>
+</table>
+
+<div class="callout">
+<strong>热插拔机制</strong>：Pogo Pin Pin 5 (GND) 同时连接 GPIO 中断输入。磁铁吸附时 Pin 5 先接触 (先接地后上电)，弹开时 Pin 5 最后断开 (先断电后分离)。ESP32-S3 通过下降沿中断 + 10ms 消抖检测接入/断开事件。
+</div>
+</section>
+
+<!-- ===== MODULE 3: BAG TERMINAL ===== -->
+<section id="m3">
+<h2><span class="num">3</span>模块 3：挎包终端 — 多角度视图</h2>
+<p>单肩斜挎包形态。内置 CM4 算力、BQ25895 充电坞（4 副）、5G 基站、涂鸦 MQTT 网关。借鉴 dynaEdge DE-100 腰挂式架构。</p>
+
+<!-- 3A. External Front View -->
+<h3>3A. 外观正视图（挎包正面）</h3>
+<div class="diagram-box">
+<svg viewBox="0 0 720 400" xmlns="http://www.w3.org/2000/svg">
+<defs><marker id="c1" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="8" markerHeight="8" markerUnits="userSpaceOnUse" orient="auto"><path d="M1 1L7 4L1 7Z" fill="#71717a"/></marker></defs>
+<!-- Bag body -->
+<rect x="160" y="80" width="340" height="240" rx="16" fill="rgba(34,165,247,.04)" stroke="#22a5f7" stroke-width="2"/>
+<!-- Strap -->
+<path d="M220 80 Q280 20 440 80" fill="none" stroke="#52525b" stroke-width="2.5" stroke-dasharray="5 3"/>
+<text x="330" y="35" text-anchor="middle" fill="#52525b" font-size="10">单肩背带</text>
+<!-- Top zipper -->
+<line x1="180" y1="85" x2="480" y2="85" stroke="#3f3f46" stroke-width="1.5" stroke-dasharray="8 2"/>
+<text x="330" y="78" text-anchor="middle" fill="#3f3f46" font-size="9">拉链</text>
+<!-- Front panel features -->
+<!-- USB-C charging ports (4x) -->
+<rect x="200" y="110" width="30" height="14" rx="3" fill="rgba(255,193,7,.08)" stroke="#ffc107" stroke-width="1.5"/>
+<text x="215" y="121" text-anchor="middle" fill="#ffc107" font-size="7">C</text>
+<rect x="240" y="110" width="30" height="14" rx="3" fill="rgba(255,193,7,.08)" stroke="#ffc107" stroke-width="1.5"/>
+<text x="255" y="121" text-anchor="middle" fill="#ffc107" font-size="7">C</text>
+<rect x="280" y="110" width="30" height="14" rx="3" fill="rgba(255,193,7,.08)" stroke="#ffc107" stroke-width="1.5"/>
+<text x="295" y="121" text-anchor="middle" fill="#ffc107" font-size="7">C</text>
+<rect x="320" y="110" width="30" height="14" rx="3" fill="rgba(255,193,7,.08)" stroke="#ffc107" stroke-width="1.5"/>
+<text x="335" y="121" text-anchor="middle" fill="#ffc107" font-size="7">C</text>
+<!-- LED indicators -->
+<circle cx="380" cy="118" r="4" fill="rgba(29,201,129,.2)" stroke="#1dc981" stroke-width="1"/>
+<circle cx="395" cy="118" r="4" fill="rgba(239,170,23,.15)" stroke="#efaa17" stroke-width="1"/>
+<circle cx="410" cy="118" r="4" fill="rgba(232,70,58,.15)" stroke="#e8463a" stroke-width="1"/>
+<text x="395" y="140" text-anchor="middle" fill="#52525b" font-size="8">LED 状态灯</text>
+<!-- 5G antenna area -->
+<rect x="430" y="100" width="50" height="30" rx="4" fill="rgba(34,165,247,.08)" stroke="#22a5f7" stroke-width="1.5"/>
+<text x="455" y="116" text-anchor="middle" fill="#22a5f7" font-size="9">5G</text>
+<text x="455" y="126" text-anchor="middle" fill="#52525b" font-size="7">天线</text>
+<!-- NFC/Pairing button -->
+<circle cx="200" cy="160" r="10" fill="rgba(96,84,241,.1)" stroke="#6054f1" stroke-width="1.5"/>
+<text x="200" y="164" text-anchor="middle" fill="#a9aeff" font-size="8">NFC</text>
+<!-- Power button -->
+<rect x="230" y="150" width="40" height="20" rx="4" fill="rgba(255,255,255,.06)" stroke="#52525b" stroke-width="1.5"/>
+<text x="250" y="164" text-anchor="middle" fill="#a1a1aa" font-size="9">PWR</text>
+<!-- Display window (small OLED status) -->
+<rect x="290" y="150" width="80" height="30" rx="4" fill="rgba(132,204,22,.06)" stroke="#84cc16" stroke-width="1"/>
+<text x="330" y="165" text-anchor="middle" fill="#84cc16" font-size="8">OLED 0.96"</text>
+<text x="330" y="175" text-anchor="middle" fill="#52525b" font-size="7">状态显示</text>
+<!-- Logo area -->
+<text x="330" y="230" text-anchor="middle" fill="#3f3f46" font-size="14" font-weight="500">RAIL-AR</text>
+<!-- Ventilation slots -->
+<line x1="200" y1="260" x2="300" y2="260" stroke="#3f3f46" stroke-width="1"/>
+<line x1="200" y1="268" x2="300" y2="268" stroke="#3f3f46" stroke-width="1"/>
+<line x1="200" y1="276" x2="300" y2="276" stroke="#3f3f46" stroke-width="1"/>
+<text x="250" y="295" text-anchor="middle" fill="#52525b" font-size="8">散热槽</text>
+<!-- Belt clip -->
+<rect x="380" y="260" width="80" height="40" rx="4" fill="rgba(255,255,255,.03)" stroke="#52525b" stroke-width="1.5"/>
+<text x="420" y="285" text-anchor="middle" fill="#52525b" font-size="9">腰带夹</text>
+<!-- Labels -->
+<line x1="295" y1="110" x2="100" y2="80" stroke="#71717a" stroke-width=".5" stroke-dasharray="3 3" marker-end="url(#c1)"/>
+<text x="10" y="76" fill="#ffc107" font-size="11">① 4× USB-C 充电口</text>
+<text x="10" y="90" fill="#52525b" font-size="9">BQ25895 充电管理</text>
+<line x1="455" y1="100" x2="560" y2="70" stroke="#71717a" stroke-width=".5" stroke-dasharray="3 3" marker-end="url(#c1)"/>
+<text x="565" y="66" fill="#22a5f7" font-size="11">② 5G 天线</text>
+<text x="565" y="80" fill="#52525b" font-size="9">基站 + WiFi 热点</text>
+<line x1="200" y1="160" x2="100" y2="180" stroke="#71717a" stroke-width=".5" stroke-dasharray="3 3" marker-end="url(#c1)"/>
+<text x="10" y="176" fill="#a9aeff" font-size="11">③ NFC 配对</text>
+<text x="10" y="190" fill="#52525b" font-size="9">BLE 眼镜一键配对</text>
+<line x1="330" y1="150" x2="560" y2="120" stroke="#71717a" stroke-width=".5" stroke-dasharray="3 3" marker-end="url(#c1)"/>
+<text x="565" y="116" fill="#84cc16" font-size="11">④ OLED 状态</text>
+<text x="565" y="130" fill="#52525b" font-size="9">128×64 I2C</text>
+<line x1="250" y1="260" x2="100" y2="250" stroke="#71717a" stroke-width=".5" stroke-dasharray="3 3" marker-end="url(#c1)"/>
+<text x="10" y="246" fill="#52525b" font-size="11">⑤ 散热槽</text>
+<line x1="420" y1="300" x2="560" y2="280" stroke="#71717a" stroke-width=".5" stroke-dasharray="3 3" marker-end="url(#c1)"/>
+<text x="565" y="276" fill="#52525b" font-size="11">⑥ 腰带夹</text>
+<!-- Dimensions -->
+<line x1="160" y1="340" x2="500" y2="340" stroke="#71717a" stroke-width=".5"/>
+<text x="330" y="355" text-anchor="middle" fill="#71717a" font-size="10">340mm</text>
+<line x1="145" y1="80" x2="145" y2="320" stroke="#71717a" stroke-width=".5"/>
+<text x="135" y="200" text-anchor="middle" fill="#71717a" font-size="10" transform="rotate(-90 135 200)">240mm</text>
+<text x="330" y="380" text-anchor="middle" fill="#71717a" font-size="13">挎包终端 — 外观正视图</text>
+</svg>
+</div>
+
+<!-- 3B. Internal Layout (Top View) -->
+<h3>3B. 内部布局（俯视，揭开盖板后）</h3>
+<div class="diagram-box">
+<svg viewBox="0 0 720 440" xmlns="http://www.w3.org/2000/svg">
+<defs><marker id="c2" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="8" markerHeight="8" markerUnits="userSpaceOnUse" orient="auto"><path d="M1 1L7 4L1 7Z" fill="#71717a"/></marker></defs>
+<!-- Bag interior outline -->
+<rect x="80" y="40" width="560" height="360" rx="12" fill="rgba(255,255,255,.02)" stroke="#52525b" stroke-width="2"/>
+<!-- CM4 board -->
+<rect x="110" y="70" width="140" height="80" rx="6" fill="rgba(96,84,241,.12)" stroke="#6054f1" stroke-width="2"/>
+<text x="180" y="100" text-anchor="middle" fill="#a9aeff" font-size="12" font-weight="500">CM4 算力板</text>
+<text x="180" y="116" text-anchor="middle" fill="#52525b" font-size="9">ARM A72 4GB</text>
+<text x="180" y="130" text-anchor="middle" fill="#52525b" font-size="9">WiFi + BT 5.0</text>
+<text x="180" y="142" text-anchor="middle" fill="#52525b" font-size="8">32GB eMMC</text>
+<!-- YOLO/Phi-3 label -->
+<rect x="120" y="155" width="50" height="14" rx="3" fill="rgba(96,84,241,.06)" stroke="#6054f1" stroke-width="1"/>
+<text x="145" y="166" text-anchor="middle" fill="#a9aeff" font-size="7">YOLOv8n</text>
+<rect x="180" y="155" width="55" height="14" rx="3" fill="rgba(96,84,241,.06)" stroke="#6054f1" stroke-width="1"/>
+<text x="207" y="166" text-anchor="middle" fill="#a9aeff" font-size="7">Phi-3 RAG</text>
+<!-- Battery pack -->
+<rect x="270" y="70" width="120" height="80" rx="6" fill="rgba(255,193,7,.08)" stroke="#ffc107" stroke-width="2" opacity=".7"/>
+<text x="330" y="100" text-anchor="middle" fill="#ffc107" font-size="12" font-weight="500">电池组</text>
+<text x="330" y="116" text-anchor="middle" fill="#52525b" font-size="9">20,000mAh</text>
+<text x="330" y="130" text-anchor="middle" fill="#52525b" font-size="9">3.7V LiPo</text>
+<text x="330" y="143" text-anchor="middle" fill="#52525b" font-size="8">74Wh</text>
+<!-- 5G module + antenna -->
+<rect x="410" y="70" width="120" height="50" rx="6" fill="rgba(34,165,247,.08)" stroke="#22a5f7" stroke-width="2"/>
+<text x="470" y="90" text-anchor="middle" fill="#22a5f7" font-size="11" font-weight="500">5G 模组</text>
+<text x="470" y="105" text-anchor="middle" fill="#52525b" font-size="9">AT 命令拨号</text>
+<!-- WiFi hotspot -->
+<rect x="410" y="130" width="120" height="20" rx="4" fill="rgba(34,165,247,.06)" stroke="#22a5f7" stroke-width="1"/>
+<text x="470" y="144" text-anchor="middle" fill="#22a5f7" font-size="8">WiFi 热点 (NAT)</text>
+<!-- Charging dock (4 slots) -->
+<rect x="110" y="190" width="420" height="55" rx="6" fill="rgba(39,210,191,.06)" stroke="#27d2bf" stroke-width="2"/>
+<text x="320" y="208" text-anchor="middle" fill="#27d2bf" font-size="11" font-weight="500">眼镜充电坞 (4 口)</text>
+<!-- 4 charging slots -->
+<rect x="125" y="215" width="90" height="22" rx="4" fill="rgba(39,210,191,.12)" stroke="#27d2bf" stroke-width="1"/>
+<text x="170" y="230" text-anchor="middle" fill="#27d2bf" font-size="8">Slot 1</text>
+<rect x="225" y="215" width="90" height="22" rx="4" fill="rgba(39,210,191,.12)" stroke="#27d2bf" stroke-width="1"/>
+<text x="270" y="230" text-anchor="middle" fill="#27d2bf" font-size="8">Slot 2</text>
+<rect x="325" y="215" width="90" height="22" rx="4" fill="rgba(39,210,191,.12)" stroke="#27d2bf" stroke-width="1"/>
+<text x="370" y="230" text-anchor="middle" fill="#27d2bf" font-size="8">Slot 3</text>
+<rect x="425" y="215" width="90" height="22" rx="4" fill="rgba(39,210,191,.12)" stroke="#27d2bf" stroke-width="1"/>
+<text x="470" y="230" text-anchor="middle" fill="#27d2bf" font-size="8">Slot 4</text>
+<!-- BQ25895 ICs (4x) -->
+<rect x="125" y="255" width="80" height="20" rx="3" fill="rgba(96,84,241,.06)" stroke="#6054f1" stroke-width="1"/>
+<text x="165" y="269" text-anchor="middle" fill="#a9aeff" font-size="7">BQ25895 #1</text>
+<rect x="225" y="255" width="80" height="20" rx="3" fill="rgba(96,84,241,.06)" stroke="#6054f1" stroke-width="1"/>
+<text x="265" y="269" text-anchor="middle" fill="#a9aeff" font-size="7">BQ25895 #2</text>
+<rect x="325" y="255" width="80" height="20" rx="3" fill="rgba(96,84,241,.06)" stroke="#6054f1" stroke-width="1"/>
+<text x="365" y="269" text-anchor="middle" fill="#a9aeff" font-size="7">BQ25895 #3</text>
+<rect x="425" y="255" width="80" height="20" rx="3" fill="rgba(96,84,241,.06)" stroke="#6054f1" stroke-width="1"/>
+<text x="465" y="269" text-anchor="middle" fill="#a9aeff" font-size="7">BQ25895 #4</text>
+<!-- Storage -->
+<rect x="110" y="290" width="120" height="40" rx="4" fill="rgba(255,255,255,.03)" stroke="rgba(255,255,255,.15)" stroke-width="1"/>
+<text x="170" y="305" text-anchor="middle" fill="#a1a1aa" font-size="9">存储</text>
+<text x="170" y="318" text-anchor="middle" fill="#52525b" font-size="8">SD 256GB + SSD</text>
+<!-- Tuya Gateway -->
+<rect x="250" y="290" width="120" height="40" rx="4" fill="rgba(96,84,241,.06)" stroke="#6054f1" stroke-width="1"/>
+<text x="310" y="305" text-anchor="middle" fill="#a9aeff" font-size="9">涂鸦 MQTT 网关</text>
+<text x="310" y="318" text-anchor="middle" fill="#52525b" font-size="8">Linux SDK</text>
+<!-- DC-DC converter -->
+<rect x="390" y="290" width="120" height="40" rx="4" fill="rgba(255,193,7,.06)" stroke="#ffc107" stroke-width="1"/>
+<text x="450" y="305" text-anchor="middle" fill="#ffc107" font-size="9">DC-DC 升降压</text>
+<text x="450" y="318" text-anchor="middle" fill="#52525b" font-size="8">MP1584 + MT3608</text>
+<!-- BLE dongle -->
+<rect x="110" y="345" width="100" height="35" rx="4" fill="rgba(96,84,241,.06)" stroke="#6054f1" stroke-width="1"/>
+<text x="160" y="358" text-anchor="middle" fill="#a9aeff" font-size="8">BLE 5.0 Dongle</text>
+<text x="160" y="370" text-anchor="middle" fill="#52525b" font-size="7">(Bleak Central)</text>
+<!-- OLED -->
+<rect x="230" y="345" width="80" height="35" rx="4" fill="rgba(132,204,22,.06)" stroke="#84cc16" stroke-width="1"/>
+<text x="270" y="358" text-anchor="middle" fill="#84cc16" font-size="8">OLED 0.96"</text>
+<text x="270" y="370" text-anchor="middle" fill="#52525b" font-size="7">I2C 状态</text>
+<!-- NFC -->
+<rect x="330" y="345" width="80" height="35" rx="4" fill="rgba(96,84,241,.06)" stroke="#6054f1" stroke-width="1"/>
+<text x="370" y="358" text-anchor="middle" fill="#a9aeff" font-size="8">NFC PN532</text>
+<text x="370" y="370" text-anchor="middle" fill="#52525b" font-size="7">配对</text>
+<!-- USB Hub -->
+<rect x="430" y="345" width="80" height="35" rx="4" fill="rgba(255,255,255,.03)" stroke="rgba(255,255,255,.15)" stroke-width="1"/>
+<text x="470" y="358" text-anchor="middle" fill="#a1a1aa" font-size="8">USB 3.0 Hub</text>
+<text x="470" y="370" text-anchor="middle" fill="#52525b" font-size="7">4 口</text>
+<!-- Labels -->
+<line x1="180" y1="70" x2="180" y2="30" stroke="#71717a" stroke-width=".5" stroke-dasharray="3 3" marker-end="url(#c2)"/>
+<text x="180" y="22" text-anchor="middle" fill="#a9aeff" font-size="11">① CM4 算力板</text>
+<line x1="330" y1="70" x2="330" y2="30" stroke="#71717a" stroke-width=".5" stroke-dasharray="3 3" marker-end="url(#c2)"/>
+<text x="330" y="22" text-anchor="middle" fill="#ffc107" font-size="11">② 电池组 74Wh</text>
+<line x1="470" y1="70" x2="470" y2="30" stroke="#71717a" stroke-width=".5" stroke-dasharray="3 3" marker-end="url(#c2)"/>
+<text x="470" y="22" text-anchor="middle" fill="#22a5f7" font-size="11">③ 5G 模组</text>
+<line x1="320" y1="190" x2="620" y2="190" stroke="#71717a" stroke-width=".5" stroke-dasharray="3 3" marker-end="url(#c2)"/>
+<text x="625" y="186" fill="#27d2bf" font-size="11">④ 充电坞</text>
+<line x1="165" y1="255" x2="620" y2="255" stroke="#71717a" stroke-width=".5" stroke-dasharray="3 3" marker-end="url(#c2)"/>
+<text x="625" y="251" fill="#a9aeff" font-size="11">⑤ BQ25895 ×4</text>
+<line x1="450" y1="290" x2="620" y2="290" stroke="#71717a" stroke-width=".5" stroke-dasharray="3 3" marker-end="url(#c2)"/>
+<text x="625" y="286" fill="#ffc107" font-size="11">⑥ DC-DC</text>
+<line x1="160" y1="345" x2="620" y2="345" stroke="#71717a" stroke-width=".5" stroke-dasharray="3 3" marker-end="url(#c2)"/>
+<text x="625" y="341" fill="#a9aeff" font-size="11">⑦ BLE Dongle</text>
+<text x="360" y="425" text-anchor="middle" fill="#71717a" font-size="13">挎包终端 — 内部布局（揭开盖板俯视）</text>
+</svg>
+</div>
+
+<!-- 3C. Side Cross-Section -->
+<h3>3C. 侧视剖面图（层叠结构）</h3>
+<div class="diagram-box">
+<svg viewBox="0 0 720 260" xmlns="http://www.w3.org/2000/svg">
+<!-- Bag shell -->
+<rect x="100" y="40" width="500" height="160" rx="10" fill="none" stroke="#52525b" stroke-width="2.5"/>
+<!-- Layer 1: Bottom shell -->
+<rect x="105" y="170" width="490" height="25" fill="rgba(255,255,255,.03)" stroke="#3f3f46" stroke-width="1"/>
+<text x="350" y="186" text-anchor="middle" fill="#52525b" font-size="10">L1: 底壳 (ABS+PC, 1.5mm)</text>
+<!-- Layer 2: PCB + Components -->
+<rect x="105" y="140" width="490" height="30" fill="rgba(96,84,241,.04)" stroke="#6054f1" stroke-width="1"/>
+<text x="350" y="158" text-anchor="middle" fill="#a9aeff" font-size="10">L2: PCB 层 (CM4 + BQ25895×4 + DC-DC + 涂鸦网关)</text>
+<!-- Layer 3: Battery -->
+<rect x="105" y="110" width="200" height="30" fill="rgba(255,193,7,.04)" stroke="#ffc107" stroke-width="1" opacity=".7"/>
+<text x="205" y="128" text-anchor="middle" fill="#ffc107" font-size="10">L3a: 电池组 (74Wh)</text>
+<!-- Layer 3: Charging dock -->
+<rect x="315" y="110" width="280" height="30" fill="rgba(39,210,191,.04)" stroke="#27d2bf" stroke-width="1"/>
+<text x="455" y="128" text-anchor="middle" fill="#27d2bf" font-size="10">L3b: 充电坞槽位 ×4</text>
+<!-- Layer 4: Glasses storage -->
+<rect x="105" y="80" width="490" height="30" fill="rgba(255,255,255,.02)" stroke="#52525b" stroke-width="1" stroke-dasharray="3 2"/>
+<text x="350" y="98" text-anchor="middle" fill="#52525b" font-size="10">L4: 眼镜收纳仓 (EVA 海绵内衬)</text>
+<!-- Layer 5: Top cover -->
+<rect x="105" y="50" width="490" height="30" fill="rgba(255,255,255,.03)" stroke="#3f3f46" stroke-width="1"/>
+<text x="350" y="68" text-anchor="middle" fill="#52525b" font-size="10">L5: 顶盖 (拉链开合, 防泼水)</text>
+<!-- Labels -->
+<line x1="600" y1="185" x2="660" y2="185" stroke="#71717a" stroke-width=".5" marker-end="url(#a4)"/>
+<line x1="600" y1="155" x2="660" y2="155" stroke="#71717a" stroke-width=".5" marker-end="url(#a4)"/>
+<line x1="305" y1="125" x2="660" y2="125" stroke="#71717a" stroke-width=".5" marker-end="url(#a4)"/>
+<line x1="595" y1="125" x2="660" y2="115" stroke="#71717a" stroke-width=".5" marker-end="url(#a4)"/>
+<line x1="595" y1="95" x2="660" y2="85" stroke="#71717a" stroke-width=".5" marker-end="url(#a4)"/>
+<line x1="595" y1="65" x2="660" y2="55" stroke="#71717a" stroke-width=".5" marker-end="url(#a4)"/>
+<text x="350" y="225" text-anchor="middle" fill="#71717a" font-size="12">挎包终端 — 侧视剖面（层叠结构 L1-L5）</text>
+<text x="350" y="242" text-anchor="middle" fill="#52525b" font-size="10">总厚度 ~55mm | 总重 ~550g</text>
+</svg>
+</div>
+
+<table class="spec-table">
+<tr><th>组件</th><th>型号/规格</th><th>数量</th><th>接口</th></tr>
+<tr><td>算力平台</td><td>CM4 (ARM A72, 4GB RAM, 32GB eMMC)</td><td>1</td><td>PCIe/USB/SDIO</td></tr>
+<tr><td>电池组</td><td>3.7V 20,000mAh LiPo (74Wh)</td><td>1</td><td>—</td></tr>
+<tr><td>充电管理 IC</td><td>BQ25895 (I2C, 5A Max)</td><td>4</td><td>I2C ×4</td></tr>
+<tr><td>5G 模组</td><td>SIM7600/EC25 (AT 命令)</td><td>1</td><td>USB 3.0</td></tr>
+<tr><td>BLE Dongle</td><td>CSR8510 / ESP32 (Bleak)</td><td>1</td><td>USB 2.0</td></tr>
+<tr><td>涂鸦网关</td><td>涂鸦 Linux MQTT SDK</td><td>1</td><td>WiFi/MQTT</td></tr>
+<tr><td>DC-DC</td><td>MP1584 (降压) + MT3608 (升压)</td><td>2</td><td>—</td></tr>
+<tr><td>OLED</td><td>0.96" 128×64 I2C</td><td>1</td><td>I2C</td></tr>
+<tr><td>NFC</td><td>PN532 (配对)</td><td>1</td><td>I2C/UART</td></tr>
+<tr><td>USB Hub</td><td>USB 3.0 4-Port</td><td>1</td><td>USB 3.0</td></tr>
+</table>
+</section>
+
+<!-- ===== EXPLODED VIEW ===== -->
+<section id="explode">
+<h2><span class="num">4</span>产品拆解分层爆炸图</h2>
+<p>三模块组装关系爆炸视图。从上到下：磁吸摄像模块 → 基础眼镜 → BLE 无线连接 → 挎包终端。</p>
+
+<div class="diagram-box">
+<svg viewBox="0 0 720 620" xmlns="http://www.w3.org/2000/svg">
+<defs><marker id="e1" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="8" markerHeight="8" markerUnits="userSpaceOnUse" orient="auto"><path d="M1 1L7 4L1 7Z" fill="#71717a"/></marker></defs>
+
+<!-- ===== LAYER 1: Camera Module (top) ===== -->
+<g transform="translate(0, 30)">
+<!-- Module -->
+<rect x="280" y="20" width="120" height="50" rx="8" fill="rgba(39,210,191,.08)" stroke="#27d2bf" stroke-width="2"/>
+<circle cx="340" cy="45" r="16" fill="rgba(20,20,30,.6)" stroke="#3f3f46" stroke-width="1.5"/>
+<text x="340" y="48" text-anchor="middle" fill="#52525b" font-size="7">OV2640</text>
+<!-- Magnets -->
+<circle cx="290" cy="25" r="4" fill="rgba(96,84,241,.2)" stroke="#6054f1" stroke-width="1"/>
+<circle cx="390" cy="25" r="4" fill="rgba(96,84,241,.2)" stroke="#6054f1" stroke-width="1"/>
+<circle cx="290" cy="65" r="4" fill="rgba(96,84,241,.2)" stroke="#6054f1" stroke-width="1"/>
+<circle cx="390" cy="65" r="4" fill="rgba(96,84,241,.2)" stroke="#6054f1" stroke-width="1"/>
+<!-- Pogo pins -->
+<circle cx="322" cy="68" r="2" fill="#27d2bf"/>
+<circle cx="330" cy="68" r="2" fill="#27d2bf"/>
+<circle cx="338" cy="68" r="2" fill="#27d2bf"/>
+<circle cx="346" cy="68" r="2" fill="#27d2bf"/>
+<circle cx="354" cy="68" r="2" fill="#27d2bf"/>
+<text x="440" y="45" fill="#27d2bf" font-size="12" font-weight="500">L1: 磁吸摄像模块</text>
+<text x="440" y="60" fill="#52525b" font-size="10">OV2640 + N52 磁铁 + Pogo Pin</text>
+<text x="440" y="73" fill="#52525b" font-size="9">重量: ~15g</text>
+</g>
+
+<!-- Assembly guide (dashed line down) -->
+<line x1="340" y1="100" x2="340" y2="150" stroke="#27d2bf" stroke-width="1.5" stroke-dasharray="6 4"/>
+<text x="355" y="130" fill="#27d2bf" font-size="10">磁吸贴合</text>
+
+<!-- ===== LAYER 2: Basic Glasses (middle) ===== -->
+<g transform="translate(0, 150)">
+<!-- Display lens -->
+<rect x="280" y="20" width="80" height="50" rx="8" fill="rgba(132,204,22,.08)" stroke="#84cc16" stroke-width="2"/>
+<text x="320" y="40" text-anchor="middle" fill="#84cc16" font-size="9">GC9A01</text>
+<text x="320" y="52" text-anchor="middle" fill="#52525b" font-size="7">240×240</text>
+<!-- Pogo Pin socket (top) -->
+<rect x="305" y="10" width="30" height="10" rx="2" fill="rgba(39,210,191,.15)" stroke="#27d2bf" stroke-width="1.5"/>
+<!-- Temple arm -->
+<rect x="360" y="32" width="160" height="14" rx="3" fill="rgba(255,255,255,.04)" stroke="#52525b" stroke-width="1.5"/>
+<!-- ESP32 -->
+<rect x="410" y="28" width="40" height="22" rx="3" fill="rgba(96,84,241,.12)" stroke="#6054f1" stroke-width="1.5"/>
+<text x="430" y="42" text-anchor="middle" fill="#a9aeff" font-size="8">ESP32</text>
+<!-- Battery -->
+<rect x="490" y="30" width="25" height="18" rx="3" fill="rgba(255,193,7,.08)" stroke="#ffc107" stroke-width="1.5" opacity=".7"/>
+<text x="502" y="42" text-anchor="middle" fill="#ffc107" font-size="7">BAT</text>
+<!-- I2S -->
+<rect x="370" y="46" width="30" height="10" rx="2" fill="rgba(34,165,247,.08)" stroke="#22a5f7" stroke-width="1"/>
+<text x="385" y="54" text-anchor="middle" fill="#22a5f7" font-size="6">I2S</text>
+<!-- Ear hook -->
+<path d="M520 39 Q540 35 542 55 Q540 72 522 68" fill="none" stroke="#52525b" stroke-width="2.5" stroke-linecap="round"/>
+<!-- Labels -->
+<text x="570" y="38" fill="#a9aeff" font-size="12" font-weight="500">L2: 基础眼镜</text>
+<text x="570" y="52" fill="#52525b" font-size="10">ESP32-S3 + 显示 + 音频 + BLE</text>
+<text x="570" y="65" fill="#52525b" font-size="9">重量: <50g</text>
+</g>
+
+<!-- BLE connection (dashed wavy) -->
+<path d="M340 230 Q330 260 340 290 Q350 320 340 340" fill="none" stroke="#a9aeff" stroke-width="2" stroke-dasharray="8 4"/>
+<text x="360" y="285" fill="#a9aeff" font-size="11">BLE NUS 5.0</text>
+<text x="360" y="300" fill="#52525b" font-size="9">无线连接 (无缆)</text>
+<text x="360" y="313" fill="#52525b" font-size="9">~10m 范围</text>
+
+<!-- ===== LAYER 3: Bag Terminal (bottom) ===== -->
+<g transform="translate(0, 340)">
+<!-- Bag body -->
+<rect x="180" y="20" width="320" height="160" rx="12" fill="rgba(34,165,247,.04)" stroke="#22a5f7" stroke-width="2"/>
+<!-- Strap -->
+<path d="M220 20 Q280 -20 460 20" fill="none" stroke="#52525b" stroke-width="2" stroke-dasharray="5 3"/>
+<!-- Internal modules -->
+<rect x="200" y="40" width="100" height="40" rx="4" fill="rgba(96,84,241,.1)" stroke="#6054f1" stroke-width="1.5"/>
+<text x="250" y="55" text-anchor="middle" fill="#a9aeff" font-size="9">CM4</text>
+<text x="250" y="68" text-anchor="middle" fill="#52525b" font-size="7">ARM A72</text>
+<rect x="310" y="40" width="80" height="40" rx="4" fill="rgba(255,193,7,.08)" stroke="#ffc107" stroke-width="1.5" opacity=".7"/>
+<text x="350" y="55" text-anchor="middle" fill="#ffc107" font-size="9">电池</text>
+<text x="350" y="68" text-anchor="middle" fill="#52525b" font-size="7">74Wh</text>
+<rect x="400" y="40" width="80" height="40" rx="4" fill="rgba(34,165,247,.08)" stroke="#22a5f7" stroke-width="1.5"/>
+<text x="440" y="55" text-anchor="middle" fill="#22a5f7" font-size="9">5G</text>
+<text x="440" y="68" text-anchor="middle" fill="#52525b" font-size="7">基站</text>
+<!-- Charging dock -->
+<rect x="200" y="90" width="280" height="30" rx="4" fill="rgba(39,210,191,.06)" stroke="#27d2bf" stroke-width="1.5"/>
+<text x="340" y="108" text-anchor="middle" fill="#27d2bf" font-size="9">充电坞 ×4 (BQ25895)</text>
+<!-- Bottom row -->
+<rect x="200" y="130" width="90" height="25" rx="3" fill="rgba(96,84,241,.06)" stroke="#6054f1" stroke-width="1"/>
+<text x="245" y="146" text-anchor="middle" fill="#a9aeff" font-size="7">涂鸦网关</text>
+<rect x="300" y="130" width="80" height="25" rx="3" fill="rgba(255,255,255,.03)" stroke="rgba(255,255,255,.15)" stroke-width="1"/>
+<text x="340" y="146" text-anchor="middle" fill="#a1a1aa" font-size="7">存储 256GB</text>
+<rect x="390" y="130" width="90" height="25" rx="3" fill="rgba(255,193,7,.06)" stroke="#ffc107" stroke-width="1"/>
+<text x="435" y="146" text-anchor="middle" fill="#ffc107" font-size="7">DC-DC</text>
+<!-- Labels -->
+<text x="520" y="50" fill="#22a5f7" font-size="12" font-weight="500">L3: 挎包终端</text>
+<text x="520" y="64" fill="#52525b" font-size="10">CM4 + 充电 + 5G + AI</text>
+<text x="520" y="77" fill="#52525b" font-size="9">重量: ~550g</text>
+</g>
+
+<!-- Assembly axis -->
+<line x1="80" y1="50" x2="80" y2="520" stroke="#71717a" stroke-width=".5" stroke-dasharray="2 4"/>
+<text x="75" y="40" text-anchor="end" fill="#71717a" font-size="10" transform="rotate(-90 75 40)">组装轴 Z</text>
+
+<!-- Legend -->
+<rect x="560" y="540" width="140" height="70" rx="8" fill="rgba(255,255,255,.02)" stroke="rgba(255,255,255,.08)"/>
+<text x="630" y="555" text-anchor="middle" fill="#cfd8ff" font-size="10" font-weight="500">连接方式</text>
+<line x1="570" y1="565" x2="590" y2="565" stroke="#27d2bf" stroke-width="1.5" stroke-dasharray="6 4"/>
+<text x="595" y="569" fill="#27d2bf" font-size="9">磁吸贴合</text>
+<line x1="570" y1="580" x2="590" y2="580" stroke="#a9aeff" stroke-width="1.5" stroke-dasharray="8 4"/>
+<text x="595" y="584" fill="#a9aeff" font-size="9">BLE 无线</text>
+<line x1="570" y1="595" x2="590" y2="595" stroke="#71717a" stroke-width=".5" stroke-dasharray="2 4"/>
+<text x="595" y="599" fill="#71717a" font-size="9">组装轴</text>
+
+<text x="360" y="600" text-anchor="middle" fill="#71717a" font-size="14">产品拆解分层爆炸图 — 三模块组装关系</text>
+</svg>
+</div>
+
+<div class="callout">
+<strong>组装关系</strong>：L1 磁吸摄像模块通过磁力 + Pogo Pin 直接贴合在 L2 基础眼镜前端。L2 基础眼镜通过 BLE NUS 无线连接到 L3 挎包终端（无物理线缆）。L3 挎包终端同时是 L2 眼镜的收纳盒和充电站。
+</div>
+</section>
+
+<!-- ===== SYSTEM SCHEMATIC ===== -->
+<section id="schematic">
+<h2><span class="num">5</span>系统电气原理图</h2>
+<p>全系统电路框图，展示电源分配、信号流、通信总线和连接关系。</p>
+
+<!-- 5A. Power Distribution -->
+<h3>5A. 电源分配图</h3>
+<div class="diagram-box">
+<svg viewBox="0 0 720 460" xmlns="http://www.w3.org/2000/svg">
+<defs><marker id="p1" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="8" markerHeight="8" markerUnits="userSpaceOnUse" orient="auto"><path d="M1 1L7 4L1 7Z" fill="#ffc107"/></marker></defs>
+<!-- Main battery -->
+<rect x="280" y="30" width="160" height="50" rx="8" fill="rgba(255,193,7,.12)" stroke="#ffc107" stroke-width="2"/>
+<text x="360" y="50" text-anchor="middle" fill="#ffc107" font-size="13" font-weight="500">主电池组</text>
+<text x="360" y="68" text-anchor="middle" fill="#52525b" font-size="10">3.7V 20,000mAh (74Wh)</text>
+<!-- DC-DC Step Down to 5V -->
+<rect x="150" y="120" width="100" height="40" rx="6" fill="rgba(255,193,7,.06)" stroke="#ffc107" stroke-width="1.5"/>
+<text x="200" y="138" text-anchor="middle" fill="#ffc107" font-size="10">MP1584</text>
+<text x="200" y="152" text-anchor="middle" fill="#52525b" font-size="8">→ 5V/3A</text>
+<!-- DC-DC Step Up for 5G -->
+<rect x="470" y="120" width="100" height="40" rx="6" fill="rgba(255,193,7,.06)" stroke="#ffc107" stroke-width="1.5"/>
+<text x="520" y="138" text-anchor="middle" fill="#ffc107" font-size="10">MT3608</text>
+<text x="520" y="152" text-anchor="middle" fill="#52525b" font-size="8">→ 5V/2A</text>
+<!-- Lines from battery -->
+<line x1="320" y1="80" x2="200" y2="120" stroke="#ffc107" stroke-width="1.5" marker-end="url(#p1)"/>
+<line x1="400" y1="80" x2="520" y2="120" stroke="#ffc107" stroke-width="1.5" marker-end="url(#p1)"/>
+<!-- BQ25895 charging (4x) -->
+<rect x="80" y="200" width="80" height="35" rx="4" fill="rgba(96,84,241,.06)" stroke="#6054f1" stroke-width="1"/>
+<text x="120" y="218" text-anchor="middle" fill="#a9aeff" font-size="8">BQ25895 #1</text>
+<text x="120" y="230" text-anchor="middle" fill="#52525b" font-size="7">→ 眼镜1</text>
+<rect x="170" y="200" width="80" height="35" rx="4" fill="rgba(96,84,241,.06)" stroke="#6054f1" stroke-width="1"/>
+<text x="210" y="218" text-anchor="middle" fill="#a9aeff" font-size="8">BQ25895 #2</text>
+<text x="210" y="230" text-anchor="middle" fill="#52525b" font-size="7">→ 眼镜2</text>
+<rect x="260" y="200" width="80" height="35" rx="4" fill="rgba(96,84,241,.06)" stroke="#6054f1" stroke-width="1"/>
+<text x="300" y="218" text-anchor="middle" fill="#a9aeff" font-size="8">BQ25895 #3</text>
+<text x="300" y="230" text-anchor="middle" fill="#52525b" font-size="7">→ 眼镜3</text>
+<rect x="350" y="200" width="80" height="35" rx="4" fill="rgba(96,84,241,.06)" stroke="#6054f1" stroke-width="1"/>
+<text x="390" y="218" text-anchor="middle" fill="#a9aeff" font-size="8">BQ25895 #4</text>
+<text x="390" y="230" text-anchor="middle" fill="#52525b" font-size="7">→ 眼镜4</text>
+<!-- Line to BQ25895s -->
+<line x1="200" y1="160" x2="210" y2="200" stroke="#ffc107" stroke-width="1.5" marker-end="url(#p1)"/>
+<text x="170" y="185" fill="#ffc107" font-size="9">5V</text>
+<!-- CM4 power -->
+<rect x="470" y="200" width="120" height="40" rx="6" fill="rgba(96,84,241,.1)" stroke="#6054f1" stroke-width="1.5"/>
+<text x="530" y="218" text-anchor="middle" fill="#a9aeff" font-size="10">CM4 算力板</text>
+<text x="530" y="232" text-anchor="middle" fill="#52525b" font-size="8">5V/3A (~15W)</text>
+<line x1="520" y1="160" x2="530" y2="200" stroke="#ffc107" stroke-width="1.5" marker-end="url(#p1)"/>
+<!-- 5G module power -->
+<rect x="470" y="270" width="120" height="35" rx="4" fill="rgba(34,165,247,.06)" stroke="#22a5f7" stroke-width="1"/>
+<text x="530" y="285" text-anchor="middle" fill="#22a5f7" font-size="9">5G 模组</text>
+<text x="530" y="297" text-anchor="middle" fill="#52525b" font-size="7">5V/2A (~10W)</text>
+<line x1="520" y1="240" x2="530" y2="270" stroke="#ffc107" stroke-width="1" marker-end="url(#p1)"/>
+<!-- Glasses power (wireless charge via USB-C) -->
+<rect x="80" y="270" width="200" height="50" rx="6" fill="rgba(96,84,241,.06)" stroke="#6054f1" stroke-width="1" stroke-dasharray="4 2"/>
+<text x="180" y="288" text-anchor="middle" fill="#a9aeff" font-size="10">基础眼镜 (×4)</text>
+<text x="180" y="302" text-anchor="middle" fill="#52525b" font-size="8">3.7V 300mAh 各</text>
+<text x="180" y="314" text-anchor="middle" fill="#52525b" font-size="8">USB-C 充电 (各 ~2W)</text>
+<line x1="120" y1="235" x2="120" y2="270" stroke="#ffc107" stroke-width="1" marker-end="url(#p1)"/>
+<line x1="210" y1="235" x2="180" y2="270" stroke="#ffc107" stroke-width="1" marker-end="url(#p1)"/>
+<!-- Power budget -->
+<rect x="80" y="360" width="510" height="80" rx="8" fill="rgba(255,255,255,.02)" stroke="rgba(255,255,255,.08)"/>
+<text x="335" y="380" text-anchor="middle" fill="#cfd8ff" font-size="12" font-weight="500">功耗预算 (满载)</text>
+<text x="100" y="400" fill="#a1a1aa" font-size="11">CM4: ~15W</text>
+<text x="220" y="400" fill="#a1a1aa" font-size="11">5G: ~10W</text>
+<text x="330" y="400" fill="#a1a1aa" font-size="11">充电×4: ~8W</text>
+<text x="460" y="400" fill="#a1a1aa" font-size="11">其他: ~2W</text>
+<text x="335" y="425" text-anchor="middle" fill="#ffc107" font-size="13" font-weight="500">总功耗: ~35W | 电池续航: ~2h (74Wh/35W)</text>
+<text x="335" y="445" text-anchor="middle" fill="#71717a" font-size="10">注: 巡检场景通常非全载运行，实际续航 3-4h</text>
+<text x="360" y="500" text-anchor="middle" fill="#71717a" font-size="13">电源分配图 — 从主电池到各子系统的供电路径</text>
+</svg>
+</div>
+
+<!-- 5B. Signal Flow -->
+<h3>5B. 信号流图（数据流向）</h3>
+<div class="diagram-box">
+<svg viewBox="0 0 720 420" xmlns="http://www.w3.org/2000/svg">
+<defs><marker id="s1" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="8" markerHeight="8" markerUnits="userSpaceOnUse" orient="auto"><path d="M1 1L7 4L1 7Z" fill="#71717a"/></marker></defs>
+<!-- Camera (glasses side) -->
+<rect x="50" y="40" width="110" height="45" rx="6" fill="rgba(39,210,191,.1)" stroke="#27d2bf" stroke-width="1.5"/>
+<text x="105" y="60" text-anchor="middle" fill="#27d2bf" font-size="10">OV2640 摄像</text>
+<text x="105" y="74" text-anchor="middle" fill="#52525b" font-size="8">DVP → ESP32</text>
+<!-- ESP32 (glasses) -->
+<rect x="50" y="110" width="110" height="45" rx="6" fill="rgba(96,84,241,.12)" stroke="#6054f1" stroke-width="1.5"/>
+<text x="105" y="130" text-anchor="middle" fill="#a9aeff" font-size="10">ESP32-S3</text>
+<text x="105" y="144" text-anchor="middle" fill="#52525b" font-size="8">帧采集+压缩</text>
+<!-- BLE transport -->
+<rect x="220" y="110" width="100" height="45" rx="6" fill="rgba(96,84,241,.08)" stroke="#6054f1" stroke-width="1.5" stroke-dasharray="4 2"/>
+<text x="270" y="130" text-anchor="middle" fill="#a9aeff" font-size="10">BLE NUS</text>
+<text x="270" y="144" text-anchor="middle" fill="#52525b" font-size="8">NUS UART</text>
+<!-- CM4 (bag) -->
+<rect x="380" y="110" width="110" height="45" rx="6" fill="rgba(96,84,241,.12)" stroke="#6054f1" stroke-width="1.5"/>
+<text x="435" y="130" text-anchor="middle" fill="#a9aeff" font-size="10">CM4</text>
+<text x="435" y="144" text-anchor="middle" fill="#52525b" font-size="8">Bleak Central</text>
+<!-- YOLO inference -->
+<rect x="540" y="40" width="110" height="45" rx="6" fill="rgba(96,84,241,.1)" stroke="#6054f1" stroke-width="1.5"/>
+<text x="595" y="60" text-anchor="middle" fill="#a9aeff" font-size="10">YOLOv8n</text>
+<text x="595" y="74" text-anchor="middle" fill="#52525b" font-size="8">缺陷检测</text>
+<!-- RAG -->
+<rect x="540" y="110" width="110" height="45" rx="6" fill="rgba(96,84,241,.1)" stroke="#6054f1" stroke-width="1.5"/>
+<text x="595" y="130" text-anchor="middle" fill="#a9aeff" font-size="10">RAG 引擎</text>
+<text x="595" y="144" text-anchor="middle" fill="#52525b" font-size="8">Qdrant+Phi-3</text>
+<!-- Display back to glasses -->
+<rect x="50" y="200" width="110" height="45" rx="6" fill="rgba(132,204,22,.08)" stroke="#84cc16" stroke-width="1.5"/>
+<text x="105" y="220" text-anchor="middle" fill="#84cc16" font-size="10">GC9A01</text>
+<text x="105" y="234" text-anchor="middle" fill="#52525b" font-size="8">显示结果</text>
+<!-- Audio back to glasses -->
+<rect x="50" y="260" width="110" height="45" rx="6" fill="rgba(34,165,247,.08)" stroke="#22a5f7" stroke-width="1.5"/>
+<text x="105" y="280" text-anchor="middle" fill="#22a5f7" font-size="10">I2S 扬声器</text>
+<text x="105" y="294" text-anchor="middle" fill="#52525b" font-size="8">语音提示</text>
+<!-- 5G to cloud -->
+<rect x="540" y="200" width="110" height="45" rx="6" fill="rgba(34,165,247,.08)" stroke="#22a5f7" stroke-width="1.5"/>
+<text x="595" y="220" text-anchor="middle" fill="#22a5f7" font-size="10">5G 基站</text>
+<text x="595" y="234" text-anchor="middle" fill="#52525b" font-size="8">→ SaaS 云</text>
+<!-- Tuya MQTT -->
+<rect x="380" y="200" width="110" height="45" rx="6" fill="rgba(96,84,241,.06)" stroke="#6054f1" stroke-width="1" stroke-dasharray="4 2"/>
+<text x="435" y="220" text-anchor="middle" fill="#a9aeff" font-size="9">涂鸦 MQTT</text>
+<text x="435" y="234" text-anchor="middle" fill="#52525b" font-size="8">设备管理</text>
+<!-- Arrows -->
+<line x1="105" y1="85" x2="105" y2="110" stroke="#27d2bf" stroke-width="1.5" marker-end="url(#s1)"/>
+<line x1="160" y1="132" x2="220" y2="132" stroke="#a9aeff" stroke-width="1.5" marker-end="url(#s1)"/>
+<text x="190" y="127" text-anchor="middle" fill="#a9aeff" font-size="8">帧数据</text>
+<line x1="320" y1="132" x2="380" y2="132" stroke="#a9aeff" stroke-width="1.5" marker-end="url(#s1)"/>
+<text x="350" y="127" text-anchor="middle" fill="#a9aeff" font-size="8">NUS</text>
+<line x1="490" y1="125" x2="540" y2="62" stroke="#a9aeff" stroke-width="1.5" marker-end="url(#s1)"/>
+<text x="520" y="95" fill="#a9aeff" font-size="8">图像</text>
+<line x1="490" y1="140" x2="540" y2="132" stroke="#a9aeff" stroke-width="1.5" marker-end="url(#s1)"/>
+<text x="520" y="145" fill="#a9aeff" font-size="8">查询</text>
+<!-- Results back -->
+<line x1="540" y1="62" x2="490" y2="115" stroke="#84cc16" stroke-width="1" stroke-dasharray="4 2" marker-end="url(#s1)"/>
+<line x1="540" y1="132" x2="490" y2="140" stroke="#84cc16" stroke-width="1" stroke-dasharray="4 2" marker-end="url(#s1)"/>
+<line x1="380" y1="140" x2="220" y2="140" stroke="#84cc16" stroke-width="1" stroke-dasharray="4 2" marker-end="url(#s1)"/>
+<text x="300" y="155" fill="#84cc16" font-size="8">结果回传</text>
+<line x1="160" y1="155" x2="105" y2="200" stroke="#84cc16" stroke-width="1" stroke-dasharray="4 2" marker-end="url(#s1)"/>
+<line x1="160" y1="155" x2="105" y2="260" stroke="#22a5f7" stroke-width="1" stroke-dasharray="4 2" marker-end="url(#s1)"/>
+<!-- 5G and Tuya -->
+<line x1="490" y1="155" x2="595" y2="200" stroke="#22a5f7" stroke-width="1.5" marker-end="url(#s1)"/>
+<line x1="435" y1="155" x2="435" y2="200" stroke="#a9aeff" stroke-width="1" stroke-dasharray="4 2" marker-end="url(#s1)"/>
+<!-- Voice input -->
+<rect x="50" y="330" width="110" height="40" rx="6" fill="rgba(34,165,247,.08)" stroke="#22a5f7" stroke-width="1.5"/>
+<text x="105" y="348" text-anchor="middle" fill="#22a5f7" font-size="10">INMP441</text>
+<text x="105" y="360" text-anchor="middle" fill="#52525b" font-size="8">I2S 麦克风</text>
+<line x1="105" y1="330" x2="105" y2="155" stroke="#22a5f7" stroke-width="1" stroke-dasharray="4 2" marker-end="url(#s1)"/>
+<text x="115" y="250" fill="#22a5f7" font-size="8" transform="rotate(90 115 250)">语音→RAG</text>
+<text x="360" y="410" text-anchor="middle" fill="#71717a" font-size="13">信号流图 — 从摄像采集到 AI 推理再到显示/语音反馈的完整数据通路</text>
+</svg>
+</div>
+
+<!-- 5C. Bus Matrix -->
+<h3>5C. 总线矩阵（通信接口汇总）</h3>
+<table class="spec-table">
+<tr><th>总线</th><th>主设备</th><th>从设备</th><th>用途</th><th>速率</th></tr>
+<tr><td>SPI</td><td>ESP32-S3</td><td>GC9A01 LCD</td><td>显示数据传输</td><td>40MHz</td></tr>
+<tr><td>I2S (IN)</td><td>ESP32-S3</td><td>INMP441 麦克风</td><td>语音采集</td><td>44.1kHz/16bit</td></tr>
+<tr><td>I2S (OUT)</td><td>ESP32-S3</td><td>MAX98357A 功放</td><td>语音播放</td><td>44.1kHz/16bit</td></tr>
+<tr><td>DVP + SCCB</td><td>ESP32-S3</td><td>OV2640 (Pogo Pin)</td><td>图像采集</td><td>DVP 8-bit</td></tr>
+<tr><td>I2C #1</td><td>ESP32-S3</td><td>TP4056 状态</td><td>充电状态读取</td><td>100kHz</td></tr>
+<tr><td>BLE NUS</td><td>ESP32-S3 (从)</td><td>CM4 Bleak (主)</td><td>帧传输/指令</td><td>~1Mbps</td></tr>
+<tr><td>I2C (Bag)</td><td>CM4</td><td>BQ25895 ×4 + OLED + NFC</td><td>充电/显示/配对</td><td>400kHz</td></tr>
+<tr><td>USB 3.0</td><td>CM4</td><td>5G 模组 + BLE Dongle</td><td>5G/USB-BLE</td><td>5Gbps</td></tr>
+<tr><td>UART</td><td>CM4</td><td>5G AT 命令</td><td>5G 模组控制</td><td>115200 bps</td></tr>
+<tr><td>WiFi</td><td>CM4</td><td>涂鸦云 + 热点</td><td>IoT 管理 + WiFi</td><td>802.11ac</td></tr>
+<tr><td>MQTT</td><td>CM4</td><td>涂鸦 IoT 云</td><td>设备管理/OTA</td><td>—</td></tr>
+</table>
+
+</section>
+
+<footer>
+铁路巡检智能眼镜 — 产品设计图纸（含电气） | 2026-08-23<br>
+模块化设计 | ESP32-S3 + CM4 | 开源技术 & 通用协议 | Apache 2.0
+</footer>
+
+</div>
+</body>
+</html>

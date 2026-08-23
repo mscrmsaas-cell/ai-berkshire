@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>铁路巡检智能眼镜 — 产品形态设计规格</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: "Noto Sans CJK SC", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+    background: #0a0a0c;
+    color: #e5e5e7;
+    line-height: 1.8;
+    font-size: 15px;
+  }
+  .container { max-width: 960px; margin: 0 auto; padding: 48px 24px; }
+
+  /* Hero */
+  .hero {
+    text-align: center;
+    padding: 64px 0 48px;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+  }
+  .hero h1 {
+    font-size: 36px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    background: linear-gradient(135deg, #a9aeff, #6054f1, #22a5f7);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-bottom: 12px;
+  }
+  .hero .subtitle { font-size: 18px; color: #a1a1aa; }
+  .hero .meta { font-size: 13px; color: #71717a; margin-top: 16px; }
+
+  /* Section */
+  section { padding: 48px 0; border-bottom: 1px solid rgba(255,255,255,0.06); }
+  section h2 {
+    font-size: 24px;
+    font-weight: 600;
+    margin-bottom: 8px;
+    color: #cfd8ff;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  section h2 .num {
+    display: inline-flex;
+    width: 32px; height: 32px;
+    align-items: center; justify-content: center;
+    border-radius: 8px;
+    background: rgba(96,84,241,0.15);
+    border: 1px solid rgba(96,84,241,0.3);
+    font-size: 14px;
+    color: #a9aeff;
+    flex-shrink: 0;
+  }
+  section h3 {
+    font-size: 18px;
+    font-weight: 500;
+    margin: 24px 0 12px;
+    color: #e5e5e7;
+  }
+  section p { margin-bottom: 12px; color: #d4d4d8; }
+  section .caption { font-size: 13px; color: #71717a; margin-top: 4px; }
+
+  /* Device Diagram */
+  .device-diagram {
+    background: #111114;
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 16px;
+    padding: 32px;
+    margin: 24px 0;
+  }
+  .device-diagram svg { width: 100%; height: auto; }
+
+  /* Module Cards */
+  .module-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 16px;
+    margin: 24px 0;
+  }
+  @media (max-width: 720px) { .module-grid { grid-template-columns: 1fr; } }
+  .module-card {
+    background: #151518;
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 12px;
+    padding: 20px;
+  }
+  .module-card.fw { border-left: 3px solid #6054f1; }
+  .module-card.cam { border-left: 3px solid #27d2bf; }
+  .module-card.bag { border-left: 3px solid #22a5f7; }
+  .module-card h4 { font-size: 16px; font-weight: 600; margin-bottom: 4px; }
+  .module-card .tag { font-size: 12px; color: #71717a; margin-bottom: 12px; }
+  .module-card .ref-badge {
+    display: inline-block;
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 999px;
+    margin: 2px 4px 2px 0;
+  }
+  .ref-badge.purple { background: rgba(96,84,241,0.15); color: #a9aeff; }
+  .ref-badge.teal { background: rgba(39,210,191,0.12); color: #27d2bf; }
+  .ref-badge.blue { background: rgba(34,165,247,0.12); color: #22a5f7; }
+  .module-card dl { font-size: 13px; line-height: 1.8; }
+  .module-card dt { color: #71717a; display: inline; }
+  .module-card dd { color: #d4d4d8; display: inline; }
+  .module-card dt::after { content: "："; }
+
+  /* Spec Table */
+  .spec-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 16px 0;
+    font-size: 13px;
+  }
+  .spec-table th, .spec-table td {
+    padding: 10px 14px;
+    border: 1px solid rgba(255,255,255,0.08);
+    text-align: left;
+  }
+  .spec-table th {
+    background: rgba(96,84,241,0.08);
+    color: #cfd8ff;
+    font-weight: 500;
+    white-space: nowrap;
+  }
+  .spec-table td { color: #d4d4d8; }
+  .spec-table tr:nth-child(even) td { background: rgba(255,255,255,0.02); }
+
+  /* Reference Device Analysis */
+  .ref-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin: 20px 0;
+  }
+  @media (max-width: 720px) { .ref-grid { grid-template-columns: 1fr; } }
+  .ref-card {
+    background: #151518;
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 12px;
+    padding: 20px;
+  }
+  .ref-card .ref-name { font-size: 16px; font-weight: 600; margin-bottom: 4px; }
+  .ref-card .ref-source { font-size: 12px; color: #71717a; margin-bottom: 12px; }
+  .ref-card .ref-key { font-size: 13px; color: #d4d4d8; line-height: 1.8; }
+  .ref-card .ref-mapping {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid rgba(255,255,255,0.06);
+    font-size: 12px;
+    color: #a9aeff;
+  }
+
+  /* Pogo Pin */
+  .pogo-diagram {
+    background: #111114;
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 12px;
+    padding: 24px;
+    margin: 20px 0;
+  }
+
+  /* Callout */
+  .callout {
+    background: rgba(96,84,241,0.06);
+    border: 1px solid rgba(96,84,241,0.15);
+    border-radius: 12px;
+    padding: 16px 20px;
+    margin: 16px 0;
+    font-size: 14px;
+    color: #cfd8ff;
+  }
+  .callout strong { color: #a9aeff; }
+
+  /* Footer */
+  footer { text-align: center; padding: 32px 0; font-size: 13px; color: #52525b; }
+</style>
+</head>
+<body>
+<div class="container">
+
+<!-- ===== HERO ===== -->
+<div class="hero">
+  <h1>铁路巡检智能眼镜 — 产品形态设计规格</h1>
+  <div class="subtitle">借鉴 DigiLens ARGO / 龙珠 Scouter / Toshiba dynaEdge 的模块化形态设计</div>
+  <div class="meta">2026-08-22 | 基于开源技术 & 通用协议 | 模块化设计</div>
+</div>
+
+<!-- ===== 参考设备分析 ===== -->
+<section>
+  <h2><span class="num">0</span>参考设备研究</h2>
+  <p>基于搜狐文章报道的 DigiLens AR 眼镜，结合上传的两张参考图片（龙珠 Scouter、DIY 单目 AR 原型），以及行业同类产品，提炼出以下关键设计要素：</p>
+
+  <div class="ref-grid">
+    <div class="ref-card">
+      <div class="ref-name">DigiLens ARGO</div>
+      <div class="ref-source">来源：搜狐文章 + DigiLens 官方手册 [$TRAE_REF](https://www.digilens.com)</div>
+      <div class="ref-key">
+        • Crystal30 波导：30° FOV, 92% 透明度, 12×10mm 眼盒<br>
+        • 48MP 中心摄像头 + 双侧空间追踪摄像头<br>
+        • USB-C 充电/数据, LED 状态指示灯<br>
+        • 磁力与头盔固定（文章原文）<br>
+        • 军规级抗冲击（ORETTC 合作）
+      </div>
+      <div class="ref-mapping">→ 模块 1 波导显示方案 + 模块 2 磁吸摄像概念</div>
+    </div>
+
+    <div class="ref-card">
+      <div class="ref-name">龙珠 Scouter（战斗眼镜）</div>
+      <div class="ref-source">来源：上传图片 1 — 动画截图</div>
+      <div class="ref-key">
+        • 单眼单目显示，仅覆盖右眼<br>
+        • 耳挂式固定（无鼻托，钩住耳廓）<br>
+        • 绿色透镜/显示元素<br>
+        • 白色外壳，镜腿延伸至耳后<br>
+        • 紧凑流线型，无外露按钮/天线
+      </div>
+      <div class="ref-mapping">→ 模块 1 单目耳挂式基础形态</div>
+    </div>
+
+    <div class="ref-card">
+      <div class="ref-name">DIY 单目 AR 原型</div>
+      <div class="ref-source">来源：上传图片 2 — 实物照片</div>
+      <div class="ref-key">
+        • 单眼红色单色显示（十字准星 + 数据）<br>
+        • 3D 打印镜腿，带刻度可调节<br>
+        • 镜腿末端集成电子器件/电池<br>
+        • 简单棱镜/分束器光学路径<br>
+        • 住宅环境测试，功能优先
+      </div>
+      <div class="ref-mapping">→ 模块 1 可调节镜腿 + 镜腿末端电子集成</div>
+    </div>
+
+    <div class="ref-card">
+      <div class="ref-name">Toshiba dynaEdge</div>
+      <div class="ref-source">来源：Dynabook 官方网站 [$TRAE_REF](https://us.dynabook.com/smartglasses/)</div>
+      <div class="ref-key">
+        • 分体式设计：HMD (47g) + 腰挂 Mini PC (310g)<br>
+        • USB-C 连接 HMD 和算力终端<br>
+        • 可拆卸电池 + 四口充电器<br>
+        • 多种佩戴方式（无镜框/安全镜框/头盔/头带）<br>
+        • HMD: 0.26" 显示, 5MP 摄像头, 扬声器, 双麦克风
+      </div>
+      <div class="ref-mapping">→ 模块 3 挎包终端的分体式架构 + 充电方案</div>
+    </div>
+  </div>
+
+  <div class="callout">
+    <strong>设计提炼</strong>：将 Scouter 的单目耳挂形态 + DigiLens 的波导显示和磁吸摄像 + dynaEdge 的分体式腰挂算力 + DIY 原型的可调节镜腿，融合为三模块铁路巡检智能眼镜系统。
+  </div>
+</section>
+
+<!-- ===== 模块 1: 基础眼镜 ===== -->
+<section>
+  <h2><span class="num">1</span>模块 1：基础眼镜</h2>
+  <p>单只佩戴、镜片显示、耳机集成。借鉴 Scouter 单目耳挂式形态，融合 DigiLens 波导显示与 DIY 原型的可调节镜腿。</p>
+
+  <div class="device-diagram">
+    <svg viewBox="0 0 720 360" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <marker id="arr1" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="8" markerHeight="8" markerUnits="userSpaceOnUse" orient="auto">
+          <path d="M1 1 L7 4 L1 7 Z" fill="#71717a"/>
+        </marker>
+        <marker id="arr1b" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="8" markerHeight="8" markerUnits="userSpaceOnUse" orient="auto">
+          <path d="M1 1 L7 4 L1 7 Z" fill="#a9aeff"/>
+        </marker>
+      </defs>
+
+      <!-- Head silhouette (right profile) -->
+      <path d="M 120 100 Q 100 80 110 60 Q 130 30 180 25 Q 220 20 250 35 Q 280 50 290 80 L 290 130 Q 290 160 280 180 L 270 200 Q 260 210 250 205"
+            fill="none" stroke="#3f3f46" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+
+      <!-- Ear -->
+      <path d="M 250 120 Q 265 115 270 130 Q 268 150 255 155 Q 245 152 248 135 Z"
+            fill="none" stroke="#3f3f46" stroke-width="1.5"/>
+
+      <!-- Glasses body - temple arm (from eye to behind ear) -->
+      <path d="M 180 90 L 260 120 Q 275 125 272 140 L 265 160"
+            fill="none" stroke="#6054f1" stroke-width="4" stroke-linecap="round"/>
+
+      <!-- Display module (in front of right eye) -->
+      <rect x="140" y="75" width="48" height="32" rx="6" fill="rgba(96,84,241,0.15)" stroke="#6054f1" stroke-width="2"/>
+      <text x="164" y="95" text-anchor="middle" fill="#a9aeff" font-size="11" font-family="system-ui">GC9A01</text>
+
+      <!-- Ear hook end (battery + electronics) -->
+      <rect x="255" y="135" width="20" height="30" rx="4" fill="rgba(96,84,241,0.1)" stroke="#6054f1" stroke-width="1.5"/>
+      <text x="265" y="153" text-anchor="middle" fill="#a9aeff" font-size="8" font-family="system-ui">BAT</text>
+
+      <!-- Pogo Pin connector (front-top, for magnetic camera) -->
+      <circle cx="155" cy="65" r="6" fill="rgba(39,210,191,0.15)" stroke="#27d2bf" stroke-width="1.5"/>
+      <text x="155" y="55" text-anchor="middle" fill="#27d2bf" font-size="9" font-family="system-ui">Pogo</text>
+
+      <!-- I2S Audio (in temple arm) -->
+      <rect x="210" y="105" width="20" height="12" rx="3" fill="rgba(34,165,247,0.1)" stroke="#22a5f7" stroke-width="1"/>
+      <text x="220" y="100" text-anchor="middle" fill="#22a5f7" font-size="8" font-family="system-ui">I2S</text>
+
+      <!-- Labels & Arrows -->
+      <!-- 1. Display -->
+      <line x1="164" y1="75" x2="100" y2="40" stroke="#71717a" stroke-width="1" stroke-dasharray="3 3" marker-end="url(#arr1)"/>
+      <text x="40" y="35" fill="#71717a" font-size="12" font-family="system-ui">① 单目显示</text>
+      <text x="40" y="48" fill="#52525b" font-size="10" font-family="system-ui">1.54" 240×240 SPI</text>
+
+      <!-- 2. Pogo Pin -->
+      <line x1="155" y1="59" x2="100" y2="20" stroke="#71717a" stroke-width="1" stroke-dasharray="3 3" marker-end="url(#arr1)"/>
+      <text x="100" y="15" fill="#27d2bf" font-size="12" font-family="system-ui">② 磁吸接口</text>
+
+      <!-- 3. Temple arm -->
+      <line x1="225" y1="115" x2="340" y2="80" stroke="#71717a" stroke-width="1" stroke-dasharray="3 3" marker-end="url(#arr1)"/>
+      <text x="345" y="78" fill="#a9aeff" font-size="12" font-family="system-ui">③ 可调镜腿</text>
+      <text x="345" y="91" fill="#52525b" font-size="10" font-family="system-ui">刻度卡扣式 (借鉴DIY原型)</text>
+
+      <!-- 4. Audio -->
+      <line x1="220" y1="117" x2="340" y2="115" stroke="#71717a" stroke-width="1" stroke-dasharray="3 3" marker-end="url(#arr1)"/>
+      <text x="345" y="113" fill="#22a5f7" font-size="12" font-family="system-ui">④ I2S 耳机</text>
+
+      <!-- 5. Battery -->
+      <line x1="265" y1="165" x2="340" y2="150" stroke="#71717a" stroke-width="1" stroke-dasharray="3 3" marker-end="url(#arr1)"/>
+      <text x="345" y="148" fill="#a9aeff" font-size="12" font-family="system-ui">⑤ 电池仓</text>
+      <text x="345" y="161" fill="#52525b" font-size="10" font-family="system-ui">TP4056 + 3.7V LiPo</text>
+
+      <!-- 6. Ear hook -->
+      <line x1="265" y1="145" x2="340" y2="185" stroke="#71717a" stroke-width="1" stroke-dasharray="3 3" marker-end="url(#arr1)"/>
+      <text x="345" y="183" fill="#71717a" font-size="12" font-family="system-ui">⑥ 耳挂固定</text>
+      <text x="345" y="196" fill="#52525b" font-size="10" font-family="system-ui">Scouter 式无鼻托</text>
+
+      <!-- BLE arrow to bag -->
+      <path d="M 270 200 Q 350 250 450 250" fill="none" stroke="#a9aeff" stroke-width="1.5" stroke-dasharray="6 4" marker-end="url(#arr1b)"/>
+      <text x="360" y="245" fill="#a9aeff" font-size="11" font-family="system-ui">BLE NUS 5.0</text>
+
+      <!-- Bag terminal (simplified) -->
+      <rect x="450" y="225" width="120" height="60" rx="8" fill="rgba(34,165,247,0.08)" stroke="#22a5f7" stroke-width="1.5"/>
+      <text x="510" y="250" text-anchor="middle" fill="#22a5f7" font-size="12" font-family="system-ui">挎包终端</text>
+      <text x="510" y="265" text-anchor="middle" fill="#52525b" font-size="10" font-family="system-ui">CM4 + 充电 + 5G</text>
+
+      <!-- Legend -->
+      <rect x="40" y="280" width="12" height="12" rx="2" fill="rgba(96,84,241,0.15)" stroke="#6054f1"/>
+      <text x="58" y="290" fill="#a1a1aa" font-size="11">眼镜主体</text>
+      <rect x="140" y="280" width="12" height="12" rx="2" fill="rgba(39,210,191,0.15)" stroke="#27d2bf"/>
+      <text x="158" y="290" fill="#a1a1aa" font-size="11">磁吸接口</text>
+      <rect x="240" y="280" width="12" height="12" rx="2" fill="rgba(34,165,247,0.1)" stroke="#22a5f7"/>
+      <text x="258" y="290" fill="#a1a1aa" font-size="11">音频</text>
+      <line x1="310" y1="286" x2="330" y2="286" stroke="#a9aeff" stroke-width="1.5" stroke-dasharray="6 4"/>
+      <text x="338" y="290" fill="#a1a1aa" font-size="11">BLE 无线</text>
+
+      <!-- Title -->
+      <text x="360" y="340" text-anchor="middle" fill="#71717a" font-size="13" font-family="system-ui">基础眼镜 — 右侧剖面图 (Scouter 耳挂式形态)</text>
+    </svg>
+  </div>
+
+  <table class="spec-table">
+    <tr>
+      <th>设计要素</th><th>参考来源</th><th>我们的方案</th><th>技术规格</th>
+    </tr>
+    <tr>
+      <td>佩戴方式</td><td>Scouter 耳挂式</td><td>右耳单目耳挂，无鼻托</td><td>TPU 可调镜腿，重量 &lt;50g</td>
+    </tr>
+    <tr>
+      <td>显示方案</td><td>DigiLens Crystal30</td><td>SPI LCD 直显 (成本优先)</td><td>GC9A01 1.54" 240×240, 后续可升级波导</td>
+    </tr>
+    <tr>
+      <td>镜腿结构</td><td>DIY 原型可调刻度</td><td>三段卡扣式可调节</td><td>3 殣伸缩，适配不同头型</td>
+    </tr>
+    <tr>
+      <td>耳机</td><td>DigiLens ARGO 内置</td><td>镜腿末端 I2S 骨传导</td><td>MAX98357A 功放 + 骨传导振子</td>
+    </tr>
+    <tr>
+      <td>电池仓</td><td>dynaEdge 可拆卸</td><td>镜腿末端集成</td><td>3.7V 300mAh LiPo + TP4056</td>
+    </tr>
+    <tr>
+      <td>磁吸接口</td><td>DigiLens 磁力固定</td><td>镜框前端 5-Pin Pogo Pin</td><td>Neo 磁铁 + 弹簧 Pogo Pin</td>
+    </tr>
+    <tr>
+      <td>通信</td><td>dynaEdge USB-C</td><td>BLE NUS (无线减负)</td><td>NimBLE 5.0, NUS 从设备</td>
+    </tr>
+  </table>
+
+  <div class="callout">
+    <strong>设计要点</strong>：眼镜端极简化——只保留显示、音频、电池和 BLE 通信，全部重计算（AI推理、RAG、5G）卸载到挎包终端，通过 BLE NUS 无线连接。这与 dynaEdge 的「轻量 HMD + 腰挂算力」分体理念一致，但用 BLE 替代 USB-C 线缆，进一步减负。
+  </div>
+</section>
+
+<!-- ===== 模块 2: 磁吸摄像 ===== -->
+<section>
+  <h2><span class="num">2</span>模块 2：磁吸摄像模块</h2>
+  <p>借鉴 DigiLens 文章中「眼镜通过磁力与头盔固定在一起」的设计，将摄像头做成独立磁吸模块，通过 Pogo Pin 热插拔连接。</p>
+
+  <div class="pogo-diagram">
+    <svg viewBox="0 0 720 240" xmlns="http://www.w3.org/2000/svg">
+      <!-- Glasses frame front -->
+      <rect x="40" y="80" width="160" height="50" rx="8" fill="rgba(96,84,241,0.08)" stroke="#6054f1" stroke-width="1.5"/>
+      <text x="120" y="100" text-anchor="middle" fill="#a9aeff" font-size="12">眼镜镜框</text>
+      <text x="120" y="118" text-anchor="middle" fill="#52525b" font-size="10">ESP32-S3</text>
+
+      <!-- Magnetic camera module -->
+      <rect x="280" y="60" width="120" height="80" rx="10" fill="rgba(39,210,191,0.08)" stroke="#27d2bf" stroke-width="1.5"/>
+      <text x="340" y="85" text-anchor="middle" fill="#27d2bf" font-size="13" font-weight="500">磁吸摄像模块</text>
+      <text x="340" y="102" text-anchor="middle" fill="#52525b" font-size="10">OV2640 2MP</text>
+      <text x="340" y="118" text-anchor="middle" fill="#52525b" font-size="10">DVP + SCCB</text>
+      <text x="340" y="132" text-anchor="middle" fill="#52525b" font-size="10">3.3V 供电</text>
+
+      <!-- Pogo Pin connector (between) -->
+      <line x1="200" y1="105" x2="280" y2="105" stroke="#71717a" stroke-width="2"/>
+      <!-- Pogo pins -->
+      <circle cx="215" cy="95" r="3" fill="#27d2bf"/>
+      <circle cx="225" cy="95" r="3" fill="#27d2bf"/>
+      <circle cx="215" cy="115" r="3" fill="#27d2bf"/>
+      <circle cx="225" cy="115" r="3" fill="#27d2bf"/>
+      <circle cx="220" cy="105" r="3" fill="#27d2bf"/>
+      <text x="240" y="135" text-anchor="middle" fill="#27d2bf" font-size="9">5-Pin Pogo Pin</text>
+
+      <!-- Magnet markers -->
+      <rect x="195" y="88" width="8" height="8" rx="2" fill="#6054f1" opacity="0.6"/>
+      <rect x="275" y="88" width="8" height="8" rx="2" fill="#6054f1" opacity="0.6"/>
+      <rect x="195" y="112" width="8" height="8" rx="2" fill="#6054f1" opacity="0.6"/>
+      <rect x="275" y="112" width="8" height="8" rx="2" fill="#6054f1" opacity="0.6"/>
+
+      <!-- Labels -->
+      <line x1="175" y1="80" x2="175" y2="40" stroke="#71717a" stroke-width="0.5" stroke-dasharray="3 3"/>
+      <text x="120" y="35" fill="#a9aeff" font-size="11">① 镜框端</text>
+      <text x="120" y="50" fill="#52525b" font-size="10">Neo 磁铁 + 母 Pogo Pin</text>
+
+      <line x1="340" y1="60" x2="340" y2="30" stroke="#71717a" stroke-width="0.5" stroke-dasharray="3 3"/>
+      <text x="340" y="25" text-anchor="middle" fill="#27d2bf" font-size="11">② 摄像模块</text>
+      <text x="340" y="40" fill="#52525b" font-size="10" text-anchor="middle">Neo 磁铁 + 公 Pogo Pin</text>
+
+      <line x1="240" y1="140" x2="240" y2="180" stroke="#71717a" stroke-width="0.5" stroke-dasharray="3 3"/>
+      <text x="240" y="195" text-anchor="middle" fill="#71717a" font-size="11">③ 磁吸贴合面</text>
+      <text x="240" y="210" text-anchor="middle" fill="#52525b" font-size="10">磁力自对准 + GPIO 中断检测</text>
+
+      <!-- Position options -->
+      <rect x="480" y="50" width="200" height="140" rx="8" fill="rgba(255,255,255,0.03)" stroke="rgba(255,255,255,0.08)"/>
+      <text x="580" y="70" text-anchor="middle" fill="#cfd8ff" font-size="12" font-weight="500">安装位置选项</text>
+      <text x="490" y="90" fill="#a1a1aa" font-size="11">A. 额头位 — 第一视角</text>
+      <text x="490" y="108" fill="#a1a1aa" font-size="11">B. 太阳穴位 — 侧视角</text>
+      <text x="490" y="126" fill="#a1a1aa" font-size="11">C. 镜框前端 — 近眼视角</text>
+      <text x="490" y="150" fill="#52525b" font-size="10">参考 DigiLens:</text>
+      <text x="490" y="164" fill="#52525b" font-size="10">额头位记录路况</text>
+      <text x="490" y="178" fill="#27d2bf" font-size="10">推荐: A 额头位</text>
+    </svg>
+  </div>
+
+  <table class="spec-table">
+    <tr><th>参数</th><th>规格</th><th>参考来源</th></tr>
+    <tr><td>传感器</td><td>OV2640, 2MP, 1600×1200, DVP</td><td>通用开源方案</td></tr>
+    <tr><td>磁铁</td><td>N52 钕磁铁 ×4 (四角对称)</td><td>DigiLens 磁力固定</td></tr>
+    <tr><td>电气接口</td><td>5-Pin Pogo Pin (弹簧式)</td><td>通用 Pogo Pin 协议</td></tr>
+    <tr><td>引脚定义</td><td>D0-D7(数据) + SCCB(I2C) + PWR + GND + DET</td><td>—</td></tr>
+    <tr><td>热插拔检测</td><td>GPIO 下降沿中断, 10ms 消抖</td><td>—</td></tr>
+    <tr><td>重量</td><td>&lt;15g (含磁铁 + Pogo Pin)</td><td>—</td></tr>
+    <tr><td>防护</td><td>IP54 (防尘防溅)</td><td>参考 DigiLens 军规</td></tr>
+  </table>
+</section>
+
+<!-- ===== 模块 3: 挎包终端 ===== -->
+<section>
+  <h2><span class="num">3</span>模块 3：挎包形式基础眼镜盒</h2>
+  <p>借鉴 Toshiba dynaEdge 的「腰挂式 Mini PC + 轻量 HMD」分体架构，将算力、充电、基站功能集成到挎包中。挎包同时充当眼镜盒（收纳 + 充电）。</p>
+
+  <div class="device-diagram">
+    <svg viewBox="0 0 720 400" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <marker id="arr3" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="8" markerHeight="8" markerUnits="userSpaceOnUse" orient="auto">
+          <path d="M1 1 L7 4 L1 7 Z" fill="#71717a"/>
+        </marker>
+      </defs>
+
+      <!-- Bag outline (crossbody bag shape) -->
+      <path d="M 80 80 L 420 80 L 420 300 L 80 300 Z"
+            fill="rgba(34,165,247,0.04)" stroke="#22a5f7" stroke-width="2" rx="12"/>
+      <rect x="80" y="80" width="340" height="220" rx="12" fill="rgba(34,165,247,0.04)" stroke="#22a5f7" stroke-width="2"/>
+
+      <!-- Strap -->
+      <path d="M 150 80 Q 200 20 350 80" fill="none" stroke="#52525b" stroke-width="2" stroke-dasharray="4 4"/>
+
+      <!-- Internal modules -->
+      <!-- 1. CM4 Compute -->
+      <rect x="100" y="100" width="100" height="50" rx="6" fill="rgba(96,84,241,0.1)" stroke="#6054f1" stroke-width="1.5"/>
+      <text x="150" y="120" text-anchor="middle" fill="#a9aeff" font-size="11" font-weight="500">CM4 算力</text>
+      <text x="150" y="135" text-anchor="middle" fill="#52525b" font-size="9">A72 4GB</text>
+
+      <!-- 2. Battery -->
+      <rect x="210" y="100" width="80" height="50" rx="6" fill="rgba(255,193,7,0.08)" stroke="#ffc107" stroke-width="1.5" opacity="0.7"/>
+      <text x="250" y="120" text-anchor="middle" fill="#ffc107" font-size="11" font-weight="500">电池组</text>
+      <text x="250" y="135" text-anchor="middle" fill="#52525b" font-size="9">20,000mAh</text>
+
+      <!-- 3. 5G Module -->
+      <rect x="300" y="100" width="100" height="50" rx="6" fill="rgba(34,165,247,0.08)" stroke="#22a5f7" stroke-width="1.5"/>
+      <text x="350" y="120" text-anchor="middle" fill="#22a5f7" font-size="11" font-weight="500">5G 基站</text>
+      <text x="350" y="135" text-anchor="middle" fill="#52525b" font-size="9">AT + WiFi</text>
+
+      <!-- 4. Charging dock (4 slots) -->
+      <rect x="100" y="165" width="300" height="45" rx="6" fill="rgba(39,210,191,0.06)" stroke="#27d2bf" stroke-width="1.5"/>
+      <text x="250" y="180" text-anchor="middle" fill="#27d2bf" font-size="11" font-weight="500">4 口眼镜充电坞</text>
+      <!-- Charging slots -->
+      <rect x="115" y="190" width="60" height="15" rx="3" fill="rgba(39,210,191,0.15)" stroke="#27d2bf" stroke-width="0.8"/>
+      <rect x="185" y="190" width="60" height="15" rx="3" fill="rgba(39,210,191,0.15)" stroke="#27d2bf" stroke-width="0.8"/>
+      <rect x="255" y="190" width="60" height="15" rx="3" fill="rgba(39,210,191,0.15)" stroke="#27d2bf" stroke-width="0.8"/>
+      <rect x="325" y="190" width="60" height="15" rx="3" fill="rgba(39,210,191,0.15)" stroke="#27d2bf" stroke-width="0.8"/>
+
+      <!-- 5. BQ25895 Charger IC -->
+      <rect x="100" y="225" width="80" height="30" rx="4" fill="rgba(96,84,241,0.06)" stroke="#6054f1" stroke-width="1"/>
+      <text x="140" y="244" text-anchor="middle" fill="#a9aeff" font-size="9">BQ25895 I2C</text>
+
+      <!-- 6. Storage -->
+      <rect x="190" y="225" width="100" height="30" rx="4" fill="rgba(255,255,255,0.03)" stroke="rgba(255,255,255,0.15)" stroke-width="1"/>
+      <text x="240" y="244" text-anchor="middle" fill="#a1a1aa" font-size="9">存储 (SD + SSD)</text>
+
+      <!-- 7. Tuya Gateway -->
+      <rect x="300" y="225" width="100" height="30" rx="4" fill="rgba(96,84,241,0.06)" stroke="#6054f1" stroke-width="1"/>
+      <text x="350" y="244" text-anchor="middle" fill="#a9aeff" font-size="9">涂鸦 MQTT 网关</text>
+
+      <!-- 8. Antenna -->
+      <line x1="380" y1="100" x2="420" y2="60" stroke="#22a5f7" stroke-width="1.5"/>
+      <circle cx="420" cy="55" r="4" fill="rgba(34,165,247,0.2)" stroke="#22a5f7" stroke-width="1"/>
+      <text x="440" y="55" fill="#22a5f7" font-size="10">5G 天线</text>
+
+      <!-- Labels & Arrows -->
+      <line x1="150" y1="100" x2="60" y2="80" stroke="#71717a" stroke-width="0.5" stroke-dasharray="3 3" marker-end="url(#arr3)"/>
+      <text x="20" y="75" fill="#a9aeff" font-size="11">① 算力 (310g)</text>
+      <text x="20" y="88" fill="#52525b" font-size="9">参考: DE-100</text>
+
+      <line x1="250" y1="100" x2="60" y2="120" stroke="#71717a" stroke-width="0.5" stroke-dasharray="3 3" marker-end="url(#arr3)"/>
+      <text x="20" y="115" fill="#ffc107" font-size="11">② 电池</text>
+      <text x="20" y="128" fill="#52525b" font-size="9">20,000mAh 3.7V</text>
+
+      <line x1="350" y1="100" x2="460" y2="80" stroke="#71717a" stroke-width="0.5" stroke-dasharray="3 3" marker-end="url(#arr3)"/>
+      <text x="465" y="75" fill="#22a5f7" font-size="11">③ 5G 基站</text>
+      <text x="465" y="88" fill="#52525b" font-size="9">对外 WiFi 热点</text>
+
+      <line x1="250" y1="210" x2="60" y2="195" stroke="#71717a" stroke-width="0.5" stroke-dasharray="3 3" marker-end="url(#arr3)"/>
+      <text x="20" y="190" fill="#27d2bf" font-size="11">④ 充电坞</text>
+      <text x="20" y="203" fill="#52525b" font-size="9">4 副眼镜并发</text>
+
+      <line x1="140" y1="255" x2="60" y2="240" stroke="#71717a" stroke-width="0.5" stroke-dasharray="3 3" marker-end="url(#arr3)"/>
+      <text x="20" y="235" fill="#a9aeff" font-size="11">⑤ 充电 IC</text>
+
+      <line x1="350" y1="255" x2="460" y2="240" stroke="#71717a" stroke-width="0.5" stroke-dasharray="3 3" marker-end="url(#arr3)"/>
+      <text x="465" y="235" fill="#a9aeff" font-size="11">⑥ IoT 网关</text>
+      <text x="465" y="248" fill="#52525b" font-size="9">涂鸦 MQTT</text>
+
+      <!-- BLE connections to glasses -->
+      <path d="M 80 140 Q 30 100 30 60" fill="none" stroke="#a9aeff" stroke-width="1.2" stroke-dasharray="5 3" marker-end="url(#arr3)"/>
+      <text x="10" y="50" fill="#a9aeff" font-size="10">BLE NUS</text>
+
+      <path d="M 80 200 Q 20 180 20 280" fill="none" stroke="#a9aeff" stroke-width="1.2" stroke-dasharray="5 3" marker-end="url(#arr3)"/>
+
+      <!-- Dimensions -->
+      <line x1="80" y1="310" x2="420" y2="310" stroke="#71717a" stroke-width="0.5"/>
+      <text x="250" y="325" text-anchor="middle" fill="#71717a" font-size="10">~340mm</text>
+      <line x1="430" y1="80" x2="430" y2="300" stroke="#71717a" stroke-width="0.5"/>
+      <text x="445" y="195" fill="#71717a" font-size="10">~220mm</text>
+
+      <!-- Weight -->
+      <text x="250" y="360" text-anchor="middle" fill="#52525b" font-size="11">挎包终端总重 ~550g (含电池) — 参考: dynaEdge DE-100 = 310g (不含电池)</text>
+      <text x="250" y="380" text-anchor="middle" fill="#71717a" font-size="10">单肩斜挎佩戴，腰间位置</text>
+    </svg>
+  </div>
+
+  <h3>分体式架构对比</h3>
+  <table class="spec-table">
+    <tr><th>设计维度</th><th>Toshiba dynaEdge (参考)</th><th>我们的挎包终端</th></tr>
+    <tr><td>HMD 重量</td><td>47g</td><td>&lt;50g (基础眼镜)</td></tr>
+    <tr><td>算力终端</td><td>310g 腰挂 Mini PC</td><td>~550g 挎包 (含电池)</td></tr>
+    <tr><td>连接方式</td><td>USB-C 有线</td><td>BLE NUS 无线</td></tr>
+    <tr><td>充电方案</td><td>可拆卸电池 + 四口充电器</td><td>内置充电坞 (BQ25895 ×4)</td></tr>
+    <tr><td>算力芯片</td><td>Intel Core m5 (x86)</td><td>CM4 (ARM A72, 功耗更低)</td></tr>
+    <tr><td>通信</td><td>WiFi + BT</td><td>5G 基站 + BLE + WiFi 热点</td></tr>
+    <tr><td>额外功能</td><td>—</td><td>眼镜收纳盒 + AI 推理 + RAG</td></tr>
+  </table>
+
+  <div class="callout">
+    <strong>关键改进</strong>：相比 dynaEdge 的 USB-C 有线连接，我们采用 BLE NUS 无线连接，消除线缆羁绊——铁路巡检场景中工人需要弯腰、攀爬，无线方案更安全。挎包同时承担眼镜盒（收纳 + 充电）、移动算力（AI + RAG）和对外基站（5G + WiFi 热点）三重角色。
+  </div>
+</section>
+
+<!-- ===== 设计参考总结 ===== -->
+<section>
+  <h2><span class="num">4</span>设计参考映射总结</h2>
+  <table class="spec-table">
+    <tr><th>产品模块</th><th>参考设备</th><th>借鉴要素</th><th>我们的改进</th></tr>
+    <tr>
+      <td>基础眼镜 — 形态</td>
+      <td>龙珠 Scouter</td>
+      <td>单目耳挂式，无鼻托，右眼佩戴</td>
+      <td>增加可调节镜腿（借鉴DIY原型），适配不同头型</td>
+    </tr>
+    <tr>
+      <td>基础眼镜 — 显示</td>
+      <td>DigiLens Crystal30</td>
+      <td>波导透明显示，30° FOV, 92% 透明度</td>
+      <td>V1 用 SPI LCD 降成本；V2 升级波导</td>
+    </tr>
+    <tr>
+      <td>基础眼镜 — 耳机</td>
+      <td>DigiLens ARGO</td>
+      <td>内置扬声器 + 麦克风阵列</td>
+      <td>I2S 骨传导（不堵塞耳道，安全巡检）</td>
+    </tr>
+    <tr>
+      <td>磁吸摄像 — 磁力固定</td>
+      <td>DigiLens 头盔磁吸</td>
+      <td>磁力与主体固定，可快速拆装</td>
+      <td>N52 钕磁铁 + Pogo Pin 电气连接</td>
+    </tr>
+    <tr>
+      <td>磁吸摄像 — 位置</td>
+      <td>DigiLens 额头摄像头</td>
+      <td>额头位记录实时路况</td>
+      <td>磁吸可在额头/太阳穴/前端三位置切换</td>
+    </tr>
+    <tr>
+      <td>挎包终端 — 分体架构</td>
+      <td>Toshiba dynaEdge</td>
+      <td>轻量HMD + 腰挂PC 分体设计</td>
+      <td>BLE 无线替代 USB-C 有线</td>
+    </tr>
+    <tr>
+      <td>挎包终端 — 充电</td>
+      <td>dynaEdge 四口充电器</td>
+      <td>可拆卸电池 + 多口并发充电</td>
+      <td>内置 BQ25895 充电坞 (4副眼镜)</td>
+    </tr>
+    <tr>
+      <td>挎包终端 — 算力</td>
+      <td>dynaEdge DE-100</td>
+      <td>腰挂 Mini PC, Windows 10</td>
+      <td>CM4 ARM Linux, 功耗更低 + AI推理</td>
+    </tr>
+    <tr>
+      <td>整体 — IoT 集成</td>
+      <td>DigiLens 军规合作</td>
+      <td>军规级抗冲击，模块化设计</td>
+      <td>涂鸦 IoT (BLE SDK + MQTT) 设备管理</td>
+    </tr>
+  </table>
+</section>
+
+<footer>
+  铁路巡检智能眼镜 — 产品形态设计规格 | 2026-08-22<br>
+  基于开源技术 & 通用协议 | 模块化设计 | Apache 2.0
+</footer>
+
+</div>
+</body>
+</html>
