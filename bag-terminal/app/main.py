@@ -49,7 +49,7 @@ async def lifespan(app: FastAPI):
         4. 停止安全隔离模块
     """
     settings = get_settings()
-    logger.info("bag_terminal.starting", env=settings.env, version="1.0.0")
+    logger.info("bag_terminal.starting", env=settings.env, version="2.0.0")
 
     # --- 启动阶段 ---
     app.state.settings = settings
@@ -278,7 +278,7 @@ def _register_routes(app: FastAPI) -> None:
         return {
             "status": "ok",
             "service": "bag-terminal",
-            "version": "1.0.0",
+            "version": "2.0.0",
             "uptime_seconds": round(uptime_seconds, 1),
             "components": {
                 "ble_bridge": ble_status,
@@ -372,17 +372,17 @@ def _register_routes(app: FastAPI) -> None:
         result = await rag_engine.query(question)
         return result
 
-    @app.get("/api/v1/rag/sync", tags=["rag"])
-    async def trigger_rag_sync() -> dict[str, Any]:
-        """触发知识库增量同步"""
+    @app.post("/api/v1/rag/import", tags=["rag"])
+    async def trigger_rag_import() -> dict[str, Any]:
+        """从 USB 导入知识库 (PC 推送到 knowledge_import 目录)"""
         rag_engine = getattr(app.state, "rag_engine", None)
         if not rag_engine:
             return JSONResponse(
                 status_code=503,
                 content={"error": "rag_unavailable"},
             )
-        synced = await rag_engine.sync_knowledge()
-        return {"synced_documents": synced}
+        imported = await rag_engine.import_from_usb()
+        return {"imported_documents": imported}
 
     @app.get("/api/v1/models/version", tags=["ai"])
     async def model_version() -> dict[str, Any]:
@@ -396,13 +396,13 @@ def _register_routes(app: FastAPI) -> None:
             "available_versions": model_manager.available_versions,
         }
 
-    @app.post("/api/v1/models/hot-update", tags=["ai"])
-    async def trigger_hot_update() -> dict[str, Any]:
-        """触发模型热更新检查"""
+    @app.post("/api/v1/models/import", tags=["ai"])
+    async def trigger_model_import() -> dict[str, Any]:
+        """从 USB 导入新模型 (PC 推送到 models 目录, 替代云端热更新)"""
         model_manager = getattr(app.state, "model_manager", None)
         if not model_manager:
             return JSONResponse(status_code=503, content={"error": "model_manager_unavailable"})
-        updated = await model_manager.check_and_update()
+        updated = await model_manager.import_from_usb()
         return {"updated": updated, "current_version": model_manager.current_version}
 
 

@@ -1,19 +1,19 @@
 """
-BLE 网桥 — Bleak Central 角色, 管理多副眼镜连接
+BLE 网桥 — Bleak Central 角色, 1:1 严格配对模式 (铁路等保安全要求)
 
 功能:
     - 持续扫描 NUS Service 设备
+    - 1:1 严格配对 (仅允许一副预绑定眼镜连接)
+    - MAC 地址过滤 (仅允许预绑定的设备)
+    - RSSI 阈值监控 (低于 -85 dBm 主动断连, 防止远距离窃听)
+    - LE Secure Connections 加密配对 (AES-128)
     - 自动连接/重连 (指数退避)
-    - 最多 4 副并发连接 (独立回调)
     - 统一消息分发 (路由到 AI 推理 / RAG / 巡检记录)
     - 设备状态管理 (GlassesState)
 
 架构:
     BleBridge
-      ├── NusClient #1 (眼镜1) ──┐
-      ├── NusClient #2 (眼镜2) ──┼──→ 消息分发
-      ├── NusClient #3 (眼镜3) ──┤
-      └── NusClient #4 (眼镜4) ──┘
+      └── NusClient #1 (唯一眼镜) ──→ 消息分发
 """
 
 from __future__ import annotations
@@ -40,10 +40,16 @@ MessageHandler = Callable[[NusClient, BleFrame, GlassesState], Awaitable[None]]
 
 class BleBridge:
     """
-    BLE Central 网桥
+    BLE Central 网桥 — 1:1 严格配对模式
 
     管理扫描、连接、重连、消息分发。
-    每副眼镜拥有独立的 NusClient 和 GlassesState。
+    仅允许一副预绑定眼镜连接 (max_connections=1)。
+
+    安全特性:
+        - MAC 地址过滤: 仅允许 bonded_device_address 匹配的设备
+        - RSSI 阈值: 低于 rssi_disconnect_threshold 主动断连
+        - 设备名称前缀: 匹配 device_name_prefix
+        - 心跳超时: heartbeat_timeout 秒无心跳则断开
     """
 
     def __init__(self, settings: Settings):
@@ -103,6 +109,11 @@ class BleBridge:
             "ble_bridge.starting",
             scan_duration=self.ble_config.scan_duration,
             max_connections=self.ble_config.max_connections,
+            mode="1:1_pairing",
+            tx_power_dbm=self.ble_config.tx_power_dbm,
+            max_range_m=self.ble_config.max_range_meters,
+            bonded_addr=self.ble_config.bonded_device_address or "any_name_match",
+            rssi_threshold=self.ble_config.rssi_disconnect_threshold,
         )
 
         # 启动扫描循环
@@ -213,13 +224,36 @@ class BleBridge:
 
     def _is_nus_device(self, device, adv_data) -> bool:
         """
-        判断是否为目标 NUS 设备
+        判断是否为目标 NUS 设备 — 1:1 严格配对模式
 
-        匹配条件:
-            1. UUID 包含 NUS Service UUID, 或
-            2. 设备名称匹配前缀 (如果配置了)
+        匹配条件 (全部满足):
+            1. 设备地址匹配预绑定 MAC (如果配置了 bonded_device_address)
+            2. UUID 包含 NUS Service UUID, 或设备名称匹配前缀
+            3. RSSI 不低于阈值 (防止远距离连接)
         """
-        # 检查 UUID
+        # 1. MAC 地址过滤 — 如果配置了预绑定地址, 严格匹配
+        bonded_addr = self.ble_config.bonded_device_address
+        if bonded_addr:
+            if device.address.upper() != bonded_addr.upper():
+                logger.debug(
+                    "ble_bridge.device_rejected_mac_mismatch",
+                    address=device.address,
+                    expected=bonded_addr,
+                )
+                return False
+
+        # 2. RSSI 阈值检查 — 防止远距离连接 (≤10m 安全距离)
+        rssi = getattr(adv_data, "rssi", None) if adv_data else None
+        if rssi is not None and rssi < self.ble_config.rssi_disconnect_threshold:
+            logger.debug(
+                "ble_bridge.device_rejected_rssi",
+                address=device.address,
+                rssi=rssi,
+                threshold=self.ble_config.rssi_disconnect_threshold,
+            )
+            return False
+
+        # 3. 检查 UUID
         if adv_data:
             service_uuids = getattr(adv_data, "service_uuids", None) or []
             for uuid in service_uuids:
@@ -231,7 +265,7 @@ class BleBridge:
                             continue
                     return True
 
-        # 检查设备名称
+        # 4. 检查设备名称
         if self.ble_config.device_name_prefix:
             name = device.name or ""
             if name.startswith(self.ble_config.device_name_prefix):

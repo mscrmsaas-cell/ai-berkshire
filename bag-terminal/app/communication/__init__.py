@@ -1,17 +1,17 @@
-"""挎包终端通信模块。
+"""挎包终端通信模块 — v2.0 等保安全隔离架构
 
-本模块负责挎包终端与外部系统的所有通信：
-- 涂鸦云平台 MQTT 通信 (mqtt_client)
-- 涂鸦 Linux SDK 网关 (tuya_gateway)
-- SaaS 后端 REST API 客户端 (saas_api_client)
+本模块原负责挎包终端与外部系统的通信 (MQTT/涂鸦/SaaS API)。
+在铁路等保安全隔离架构下, 所有外网通信已禁用:
+
+- 涂鸦云平台 MQTT 通信: 已禁用 (tuya.enabled=false)
+- 涂鸦 Linux SDK 网关: 已禁用 (外网隔离)
+- SaaS 后端 REST API 客户端: 已禁用 (数据仅通过 USB 有线导出)
+
+保留模块文件作为历史参考, 但不在包级别自动导入。
+如需使用, 需显式 import 对应模块。
 """
 
-from app.communication.mqtt_client import TuyaMqttClient
-from app.communication.tuya_gateway import TuyaGatewayManager
-from app.communication.saas_api_client import SaasApiClient
+# 不自动导入任何通信客户端 — 等保要求外网隔离
+# 原有模块保留在文件系统中, 但不通过 __init__ 暴露
 
-__all__ = [
-    "TuyaMqttClient",
-    "TuyaGatewayManager",
-    "SaasApiClient",
-]
+__all__: list[str] = []

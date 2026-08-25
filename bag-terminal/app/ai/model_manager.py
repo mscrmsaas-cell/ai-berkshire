@@ -258,7 +258,11 @@ class ModelManager:
     # -------------------------------------------------------------------
 
     async def _hot_update_loop(self) -> None:
-        """定期检查模型更新"""
+        """定期检查模型更新 (v2.0: hot_update_interval=0 时禁用)"""
+        if self.yolo_config.hot_update_interval <= 0:
+            logger.info("model_manager.hot_update_disabled", reason="interval_is_zero")
+            return
+
         while True:
             try:
                 await asyncio.sleep(self.yolo_config.hot_update_interval)
@@ -271,81 +275,86 @@ class ModelManager:
 
     async def check_and_update(self) -> bool:
         """
-        检查并下载新版本模型
+        检查并下载新版本模型 (v2.0: 已禁用云端更新)
 
         Returns: True 如果更新了模型
         """
-        registry_url = self.yolo_config.model_registry_url
-        if not registry_url:
-            logger.debug("model_manager.no_registry_url")
+        # 云端模型热更新已在 v2.0 等保架构中禁用
+        # 如需更新模型, 请使用 import_from_usb()
+        logger.debug("model_manager.cloud_update_disabled")
+        return False
+
+    async def import_from_usb(self) -> bool:
+        """
+        从 USB 导入新模型 (PC 推送到 models 目录)
+
+        流程:
+            1. 扫描 models/yolo/ 目录中的新 .onnx 文件
+            2. 验证文件完整性 (SHA-256 与 manifest.json 比对)
+            3. 备份当前版本
+            4. 加载新版本
+            5. 更新版本号
+
+        Returns: True 如果成功更新模型
+        """
+        import hashlib
+
+        yolo_dir = self.model_dir / "yolo"
+        if not yolo_dir.exists():
+            logger.warning("model_manager.yolo_dir_not_found", path=str(yolo_dir))
             return False
 
-        try:
-            # 查询注册中心获取最新版本信息
-            import httpx
+        # 查找新模型文件 (排除当前使用的)
+        current_path = Path(self.yolo_config.model_path).name
 
-            async with httpx.AsyncClient(timeout=30) as client:
-                resp = await client.get(f"{registry_url}/yolo/latest")
-                if resp.status_code != 200:
-                    return False
-                info = resp.json()
+        for onnx_file in sorted(yolo_dir.glob("yolov8n_railway_v*.onnx")):
+            if onnx_file.name == current_path:
+                continue
 
-            latest_version = info.get("version", "")
-            if not latest_version or latest_version == self._current_version:
-                return False
+            # 提取版本号
+            version = onnx_file.stem.replace("yolov8n_railway_v", "")
 
-            # 下载新版本
-            download_url = info.get("download_url", "")
-            sha256 = info.get("sha256", "")
+            # 验证 SHA-256 (如果 manifest.json 存在)
+            manifest_path = yolo_dir / "manifest.json"
+            if manifest_path.exists():
+                import json
+                manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+                expected_sha = None
+                for entry in manifest.get("models", []):
+                    if entry.get("version") == version:
+                        expected_sha = entry.get("sha256")
+                        break
 
-            if not download_url:
-                return False
-
-            new_path = self.model_dir / "yolo" / f"yolov8n_railway_v{latest_version}.onnx"
-
-            # 下载
-            logger.info(
-                "model_manager.downloading",
-                version=latest_version,
-                url=download_url,
-            )
-
-            async with httpx.AsyncClient(timeout=300) as client:
-                resp = await client.get(download_url)
-                if resp.status_code != 200:
-                    logger.error(
-                        "model_manager.download_failed",
-                        status=resp.status_code,
-                    )
-                    return False
-                new_path.write_bytes(resp.content)
-
-            # 验证 SHA-256
-            if sha256:
-                import hashlib
-                actual_sha = hashlib.sha256(new_path.read_bytes()).hexdigest()
-                if actual_sha != sha256:
-                    logger.error(
-                        "model_manager.sha_mismatch",
-                        expected=sha256,
-                        actual=actual_sha,
-                    )
-                    new_path.unlink()
-                    return False
+                if expected_sha:
+                    actual_sha = hashlib.sha256(onnx_file.read_bytes()).hexdigest()
+                    if actual_sha != expected_sha:
+                        logger.error(
+                            "model_manager.import_sha_mismatch",
+                            file=onnx_file.name,
+                            expected=expected_sha,
+                            actual=actual_sha,
+                        )
+                        continue
 
             # 切换到新版本
-            await self._switch_version(str(new_path), latest_version)
+            try:
+                await self._switch_version(str(onnx_file), version)
+                logger.info(
+                    "model_manager.usb_import_success",
+                    version=version,
+                    file=onnx_file.name,
+                )
+                return True
+            except Exception as exc:
+                logger.error(
+                    "model_manager.usb_import_failed",
+                    file=onnx_file.name,
+                    error=str(exc),
+                )
+                continue
 
-            logger.info(
-                "model_manager.updated",
-                old_version=self._previous_version,
-                new_version=latest_version,
-            )
-            return True
-
-        except Exception as exc:
-            logger.error("model_manager.update_error", error=str(exc))
-            return False
+        logger.debug("model_manager.no_new_model_found")
+        return False
 
     async def _switch_version(self, model_path: str, version: str) -> None:
         """切换到指定版本"""

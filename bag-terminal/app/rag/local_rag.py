@@ -281,16 +281,92 @@ class LocalRAG:
             yield chunk
 
     # -------------------------------------------------------------------
-    # 知识同步
+    # 知识同步 (v2.0: USB 有线导入, 替代云端同步)
     # -------------------------------------------------------------------
 
     async def sync_knowledge(self) -> int:
-        """手动触发知识同步, 返回新增文档数"""
-        result = await self._knowledge_sync.sync()
-        return result.added
+        """手动触发知识同步 (已禁用云端, 返回 0)"""
+        # 云端同步已在 v2.0 等保架构中禁用
+        # 如需导入知识, 请使用 import_from_usb()
+        return 0
+
+    async def import_from_usb(self) -> int:
+        """
+        从 USB 导入知识库文件 (PC 推送到 pc_import_dir 目录)
+
+        流程:
+            1. 扫描 pc_import_dir 目录中的 .txt / .json / .md 文件
+            2. 逐文件读取内容 → BGE 向量化 → Qdrant 插入
+            3. 导入完成后标记文件为 .imported
+
+        Returns: 成功导入的文档数
+        """
+        import_path = Path(self.rag_config.pc_import_dir)
+        if not import_path.exists():
+            logger.warning("rag.import_dir_not_found", path=str(import_path))
+            return 0
+
+        if not self._embedding.is_loaded or not self._vector_store.is_initialized:
+            logger.error("rag.not_initialized_for_import")
+            return 0
+
+        supported_extensions = {".txt", ".json", ".md", ".csv"}
+        imported_count = 0
+
+        for file_path in sorted(import_path.rglob("*")):
+            if not file_path.is_file():
+                continue
+            if file_path.suffix.lower() not in supported_extensions:
+                continue
+            if file_path.suffix == ".imported":
+                continue
+
+            try:
+                content = file_path.read_text(encoding="utf-8")
+                if not content.strip():
+                    continue
+
+                # 对于 JSON 文件, 提取文本字段
+                if file_path.suffix == ".json":
+                    import json
+                    data = json.loads(content)
+                    if isinstance(data, list):
+                        # 文档列表: [{"content": "...", "source": "..."}]
+                        for doc in data:
+                            text = doc.get("content", "") if isinstance(doc, dict) else str(doc)
+                            source = doc.get("source", file_path.name) if isinstance(doc, dict) else file_path.name
+                            if text.strip():
+                                doc_id = await self.add_document(text, source=source)
+                                if doc_id:
+                                    imported_count += 1
+                    elif isinstance(data, dict):
+                        text = data.get("content", content)
+                        doc_id = await self.add_document(text, source=file_path.name)
+                        if doc_id:
+                            imported_count += 1
+                else:
+                    doc_id = await self.add_document(content, source=file_path.name)
+                    if doc_id:
+                        imported_count += 1
+
+                # 标记为已导入
+                imported_path = file_path.with_suffix(file_path.suffix + ".imported")
+                file_path.rename(imported_path)
+
+                logger.info("rag.document_imported", file=file_path.name)
+
+            except Exception as exc:
+                logger.error("rag.import_file_error", file=str(file_path), error=str(exc))
+
+        logger.info("rag.usb_import_complete", imported=imported_count)
+        return imported_count
 
     async def _sync_loop(self) -> None:
-        """定期同步知识库"""
+        """定期同步知识库 (v2.0: sync_interval=0 时禁用)"""
+        if self.rag_config.sync_interval <= 0:
+            logger.info("rag.sync_disabled", reason="sync_interval_is_zero")
+            return
+
         while True:
             try:
                 await asyncio.sleep(self.rag_config.sync_interval)
