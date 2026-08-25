@@ -1,0 +1,220 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "schema_version": "1.0.0",
+  "description": "铁路巡检智能眼镜 — 涂鸦 IoT 平台数据点 (DP) Schema 定义。共 14 个 DP：10 个上报 (设备→云端) + 4 个下行 (云端→设备)。",
+  "product_info": {
+    "product_name": "Railway Inspection AR Glasses",
+    "product_id": "railway_ar_glasses",
+    "category": "wearable",
+    "protocol": "ble",
+    "communication_mode": "BLE+NUS"
+  },
+  "data_points": {
+    "upload": [
+      {
+        "id": 1,
+        "code": "device_online",
+        "name_cn": "设备在线状态",
+        "name_en": "Device Online Status",
+        "type": "bool",
+        "mode": "ro",
+        "direction": "upload",
+        "default": false,
+        "description": "眼镜设备是否在线并连接到挎包终端"
+      },
+      {
+        "id": 2,
+        "code": "battery_level",
+        "name_cn": "电池电量",
+        "name_en": "Battery Level",
+        "type": "value",
+        "mode": "ro",
+        "direction": "upload",
+        "property": {
+          "min": 0,
+          "max": 100,
+          "step": 1,
+          "unit": "%",
+          "scale": 1
+        },
+        "default": 0,
+        "description": "眼镜电池剩余电量百分比"
+      },
+      {
+        "id": 3,
+        "code": "charging_status",
+        "name_cn": "充电状态",
+        "name_en": "Charging Status",
+        "type": "bool",
+        "mode": "ro",
+        "direction": "upload",
+        "default": false,
+        "description": "眼镜是否正在充电 (TP4056 STDBY/CHRG 引脚状态)"
+      },
+      {
+        "id": 4,
+        "code": "camera_connected",
+        "name_cn": "摄像头连接状态",
+        "name_en": "Camera Connected",
+        "type": "bool",
+        "mode": "ro",
+        "direction": "upload",
+        "default": false,
+        "description": "磁吸摄像模块是否已通过 Pogo Pin 接入"
+      },
+      {
+        "id": 5,
+        "code": "inspection_task_id",
+        "name_cn": "当前巡检任务ID",
+        "name_en": "Inspection Task ID",
+        "type": "string",
+        "mode": "ro",
+        "direction": "upload",
+        "maxlen": 64,
+        "default": "",
+        "description": "当前正在执行的巡检任务唯一标识 (UUID)"
+      },
+      {
+        "id": 6,
+        "code": "device_mode",
+        "name_cn": "设备模式",
+        "name_en": "Device Mode",
+        "type": "enum",
+        "mode": "ro",
+        "direction": "upload",
+        "property": {
+          "range": ["standby", "inspecting", "alert", "charging", "ota"]
+        },
+        "default": "standby",
+        "description": "眼镜当前工作模式"
+      },
+      {
+        "id": 7,
+        "code": "ai_detection_summary",
+        "name_cn": "AI检测摘要",
+        "name_en": "AI Detection Summary",
+        "type": "string",
+        "mode": "ro",
+        "direction": "upload",
+        "maxlen": 512,
+        "default": "",
+        "description": "最新 AI 检测结果的 JSON 摘要 (缺陷类别/数量/置信度)"
+      },
+      {
+        "id": 8,
+        "code": "telemetry",
+        "name_cn": "设备遥测数据",
+        "name_en": "Device Telemetry",
+        "type": "string",
+        "mode": "ro",
+        "direction": "upload",
+        "maxlen": 256,
+        "default": "",
+        "description": "JSON 格式遥测数据：CPU/内存/温度/推理耗时/帧率"
+      },
+      {
+        "id": 9,
+        "code": "firmware_version",
+        "name_cn": "固件版本",
+        "name_en": "Firmware Version",
+        "type": "string",
+        "mode": "ro",
+        "direction": "upload",
+        "maxlen": 32,
+        "default": "0.0.0",
+        "description": "眼镜固件语义化版本号 (如 1.2.0)"
+      },
+      {
+        "id": 10,
+        "code": "ble_signal",
+        "name_cn": "BLE信号强度",
+        "name_en": "BLE Signal Strength",
+        "type": "value",
+        "mode": "ro",
+        "direction": "upload",
+        "property": {
+          "min": -120,
+          "max": 0,
+          "step": 1,
+          "unit": "dBm",
+          "scale": 1
+        },
+        "default": -100,
+        "description": "当前 BLE 连接的 RSSI 信号强度"
+      }
+    ],
+    "download": [
+      {
+        "id": 101,
+        "code": "remote_reboot",
+        "name_cn": "远程重启",
+        "name_en": "Remote Reboot",
+        "type": "bool",
+        "mode": "rw",
+        "direction": "download",
+        "default": false,
+        "description": "云端触发眼镜设备远程重启 (写 true 生效)"
+      },
+      {
+        "id": 102,
+        "code": "mode_switch",
+        "name_cn": "模式切换",
+        "name_en": "Mode Switch",
+        "type": "enum",
+        "mode": "rw",
+        "direction": "download",
+        "property": {
+          "range": ["standby", "inspecting", "alert", "charging", "ota"]
+        },
+        "default": "standby",
+        "description": "云端下发眼镜工作模式切换指令"
+      },
+      {
+        "id": 103,
+        "code": "brightness",
+        "name_cn": "屏幕亮度",
+        "name_en": "Brightness",
+        "type": "value",
+        "mode": "rw",
+        "direction": "download",
+        "property": {
+          "min": 0,
+          "max": 255,
+          "step": 1,
+          "unit": "",
+          "scale": 1
+        },
+        "default": 128,
+        "description": "GC9A01 LCD 背光亮度 PWM 占空比"
+      },
+      {
+        "id": 104,
+        "code": "volume",
+        "name_cn": "音量",
+        "name_en": "Volume",
+        "type": "value",
+        "mode": "rw",
+        "direction": "download",
+        "property": {
+          "min": 0,
+          "max": 100,
+          "step": 1,
+          "unit": "%",
+          "scale": 1
+        },
+        "default": 50,
+        "description": "MAX98357A 功放输出音量百分比"
+      }
+    ]
+  },
+  "validation_rules": {
+    "id_uniqueness": "所有 DP 的 id 字段在整个 schema 中必须唯一",
+    "upload_count": 10,
+    "download_count": 4,
+    "total_count": 14,
+    "upload_id_range": "1-10",
+    "download_id_range": "101-104",
+    "required_fields": ["id", "code", "name_cn", "name_en", "type", "mode", "direction"],
+    "enum_types_must_have_range": "type 为 enum 的 DP 必须定义 property.range 数组"
+  }
+}

@@ -1,0 +1,71 @@
+[Unit]
+Description=Railway AR Glasses Bag Terminal Service
+Documentation=https://github.com/railway-ar-glasses-embedded
+After=network-online.target bluetooth.target docker.service
+Wants=network-online.target
+Requires=bluetooth.target
+
+[Service]
+Type=simple
+
+# 运行用户
+User=pi
+Group=pi
+
+# 补充组（BLE/I2C 权限）
+SupplementaryGroups=bluetooth i2c plugdev dialout
+
+# 工作目录
+WorkingDirectory=/opt/bag-terminal
+
+# 环境变量文件
+EnvironmentFile=/opt/bag-terminal/.env
+
+# Python 虚拟环境路径
+Environment=PATH=/opt/bag-terminal/venv/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+
+# 启动命令（裸金属部署，直接运行 uvicorn）
+ExecStart=/opt/bag-terminal/venv/bin/uvicorn app.main:app \
+    --host 0.0.0.0 \
+    --port 8000 \
+    --workers 1 \
+    --loop uvloop \
+    --http httptools \
+    --no-access-log
+
+# 优雅停止
+ExecStop=/bin/kill -TERM $MAINPID
+ExecReload=/bin/kill -HUP $MAINPID
+
+# 重启策略：崩溃后自动重启，5 秒间隔
+Restart=always
+RestartSec=5
+StartLimitBurst=5
+StartLimitIntervalSec=60
+
+# 资源限制
+MemoryMax=4G
+MemoryHigh=3G
+CPUWeight=100
+
+# 安全加固
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/data/bag-terminal /mnt/sdcard/bag-terminal /var/log/bag-terminal /tmp
+# BLE 和 I2C 需要设备访问
+DeviceAllow=/dev/i2c-* rw
+DeviceAllow=/dev/ttyUSB* rw
+DeviceAllow=/dev/rfkill rw
+
+# 日志
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=bag-terminal
+
+# OOM 处理
+OOMPolicy=kill
+
+[Install]
+WantedBy=multi-user.target

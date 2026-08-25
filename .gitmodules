@@ -1,0 +1,21 @@
+# =============================================================================
+# Railway Inspection AR Glasses — Git Submodules
+# =============================================================================
+# 三个第三方子模块: LVGL 图形库、ESP32 摄像头驱动、涂鸦 IoT Core SDK
+# 初始化: git submodule update --init --recursive
+# =============================================================================
+
+[submodule "glasses-firmware/components/lvgl"]
+	path = glasses-firmware/components/lvgl
+	url = https://github.com/lvgl/lvgl.git
+	branch = release/v8.3
+
+[submodule "glasses-firmware/components/esp32-camera"]
+	path = glasses-firmware/components/esp32-camera
+	url = https://github.com/espressif/esp32-camera.git
+	branch = master
+
+[submodule "glasses-firmware/components/tuya-iot-core-sdk"]
+	path = glasses-firmware/components/tuya-iot-core-sdk
+	url = https://github.com/tuya/tuya-iot-core-sdk.git
+	branch = master

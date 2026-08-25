@@ -1,27 +1,167 @@
-# ===== 系统与工具产物 =====
-.DS_Store
+# =============================================================================
+# Railway Inspection AR Glasses — Embedded Monorepo .gitignore
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# ESP-IDF / ESP32 构建产物
+# -----------------------------------------------------------------------------
+build/
+sdkconfig.old
+sdkconfig.defaults.bak
+dependencies.lock
+managed_components/
+dependencies.db
+
+# ESP-IDF 编译中间文件
+*.o
+*.obj
+*.elf
+*.bin
+*.hex
+*.map
+*.dump
+*.image
+*.archive
+
+# 固件签名 / 下载镜像
+flash_args
+flasher_args.json
+download_all_args.txt
+bootloader.bin
+partition_table/*.bin
+ota_data_initial.bin
+
+# -----------------------------------------------------------------------------
+# Python
+# -----------------------------------------------------------------------------
 __pycache__/
-*.pyc
-.codex/
-/tmp/
-logs/command-log.jsonl
-reports/美团/command-log.jsonl
+*.py[cod]
+*$py.class
+*.so
+.Python
 
-# 雪球爬虫登录态缓存（含 cookies，本地使用）
-/tmp/xueqiu_state.json
+# 虚拟环境
+venv/
+.venv/
+env/
+ENV/
+env.bak/
+venv.bak/
 
-# ===== 音视频大文件不入库 =====
-# 如确需提交某个文件，用 git add -f 显式加入
-*.m4a
-*.mp3
-*.wav
-*.mp4
-*.mov
+# 分发包
+build/
+dist/
+*.egg-info/
+*.egg
+pip-wheel-metadata/
+develop-eggs/
+sdist/
+wheels/
+*.whl
 
-# ===== 本地资料区：不打算公开的文件放这个目录，永不入库 =====
-/local/
+# 测试 / 覆盖率
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.nox/
+coverage.xml
+*.cover
+.hypothesis/
 
-# 组合报告只存本地，不公开
-reports/portfolio-latest.md
+# 类型检查
+.mypy_cache/
+.pyre/
+.pytype/
+.ruff_cache/
 
-# 实盘记录/ 公开权重口径版；原始账本（含股数/金额）在 local/实盘记录-原始/（已被 /local/ 规则覆盖）
+# Jupyter
+.ipynb_checkpoints
+
+# -----------------------------------------------------------------------------
+# AI 模型文件 (不入仓库，通过 download_models.sh 拉取)
+# 只排除 AI 模型二进制文件，不排除 app/models/ Python 源码目录
+*.onnx
+*.gguf
+*.pt
+*.pth
+*.ckpt
+*.safetensors
+*.tflite
+bag-terminal/models/*.bin
+bag-terminal/models/*.onnx
+bag-terminal/models/*.gguf
+
+# -----------------------------------------------------------------------------
+# 环境变量 / 密钥 (绝不提交)
+# -----------------------------------------------------------------------------
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.crt
+*.p12
+secrets/
+credentials.json
+tuya_keys/
+
+# -----------------------------------------------------------------------------
+# IDE / 编辑器
+# -----------------------------------------------------------------------------
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+*.sublime-project
+*.sublime-workspace
+.project
+.pydevproject
+.settings/
+
+# -----------------------------------------------------------------------------
+# CMake / 构建系统
+# -----------------------------------------------------------------------------
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+Makefile
+!Makefile
+CMakeUserPresets.json
+compile_commands.json
+.cache/
+
+# -----------------------------------------------------------------------------
+# Docker
+# -----------------------------------------------------------------------------
+docker-compose.override.yml
+
+# -----------------------------------------------------------------------------
+# 数据库 / 本地数据
+# -----------------------------------------------------------------------------
+*.db
+*.sqlite
+*.sqlite3
+*.db-journal
+*.db-wal
+*.db-shm
+data/
+uploads/
+*.log
+
+# -----------------------------------------------------------------------------
+# 文档构建
+# -----------------------------------------------------------------------------
+_site/
+docs/_build/
+
+# -----------------------------------------------------------------------------
+# 子模块内部构建产物 (子模块本身通过 .gitmodules 管理)
+# -----------------------------------------------------------------------------
+glasses-firmware/components/lvgl/build/
+glasses-firmware/components/esp32-camera/build/
+glasses-firmware/components/tuya-iot-core-sdk/build/

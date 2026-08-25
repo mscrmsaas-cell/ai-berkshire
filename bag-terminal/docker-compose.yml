@@ -1,0 +1,107 @@
+# =============================================================================
+# 挎包终端 Docker Compose 编排 — 铁路等保安全隔离架构 v2.0
+#
+# 核心变更:
+#   1. 移除 5G 模块和 SaaS 云端协同环境变量
+#   2. BLE 改为 1:1 严格配对模式
+#   3. 数据仅通过 USB 有线导出到指定 PC/服务器
+#   4. 网络模式: host (BLE 需要直接访问主机 BlueZ D-Bus)
+#   5. 权限: privileged (BLE HCI / I2C / GPIO / USB 串口访问)
+# =============================================================================
+version: "3.8"
+
+services:
+  bag-terminal:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: railway-bag-terminal:2.0.0
+    container_name: bag-terminal
+    restart: unless-stopped
+
+    # host 网络: BLE (BlueZ D-Bus) 需要 直接主机网络访问
+    # 注意: 不需要 5G 网络访问 (已移除外网连接)
+    network_mode: host
+
+    # privileged 模式: BLE HCI / I2C (BQ25895 充电) / GPIO / USB 串口 / iptables
+    privileged: true
+
+    # 环境变量 (覆盖 config.yaml 默认值)
+    environment:
+      - ENV=production
+      - TZ=Asia/Shanghai
+      - LOG_LEVEL=INFO
+      # BLE 1:1 配对模式
+      - BLE_SCAN_DURATION=5
+      - BLE_MAX_CONNECTIONS=1
+      - BLE_RECONNECT_INTERVAL=3
+      - BLE_HEARTBEAT_INTERVAL=5
+      - BLE_TX_POWER_DBM=-6
+      # AI 模型路径
+      - MODEL_DIR=/app/models
+      - DB_PATH=/app/data/bag_terminal.db
+      - QDRANT_PATH=/app/data/qdrant
+      # 数据安全隔离: HMAC 签名密钥 (.dat 导出包完整性校验)
+      - BAG_EXPORT_HMAC_KEY=${BAG_EXPORT_HMAC_KEY:-railway-ar-glasses-default-key}
+      # 预绑定眼镜 MAC 地址 (生产环境必须填写)
+      - BLE_BONDED_DEVICE_ADDRESS=${BLE_BONDED_DEVICE_ADDRESS:-}
+
+    # 卷挂载
+    volumes:
+      # 模型文件 (ONNX / GGUF, 不入镜像, 从 PC 通过 USB 导入)
+      - ./models:/app/models:ro
+      # 配置文件
+      - ./config:/app/config:ro
+      # SQLite 数据库持久化
+      - bag-terminal-data:/app/data
+      # 照片/视频存储 (SD 卡或外部存储)
+      - bag-terminal-photos:/app/storage/photos
+      # .dat 导出包存储 (PC 通过 USB 下载)
+      - bag-terminal-exports:/mnt/sdcard/bag-terminal/exports
+      # 知识库导入目录 (PC 通过 USB 推送知识文件)
+      - bag-terminal-knowledge:/mnt/sdcard/bag-terminal/knowledge_import
+      # 日志
+      - bag-terminal-logs:/app/logs
+      # D-Bus socket (BlueZ 通信)
+      - /var/run/dbus:/var/run/dbus
+      # 蓝牙配置
+      - /etc/bluetooth:/etc/bluetooth:ro
+      # 设备节点 (BLE HCI / I2C / USB 串口)
+      - /dev:/dev
+      # 系统时区
+      - /etc/timezone:/etc/timezone:ro
+      - /etc/localtime:/etc/localtime:ro
+
+    # 设备权限
+    devices:
+      - /dev/bus/usb:/dev/bus/usb
+      - /dev/i2c-1:/dev/i2c-1
+      # USB 串口调试通道 (CDC-ACM, PC 连接时枚举)
+      - /dev/ttyACM0:/dev/ttyACM0
+
+    # 日志限制
+    logging:
+      driver: json-file
+      options:
+        max-size: "50m"
+        max-file: "5"
+
+    # 健康检查
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import httpx; r=httpx.get('http://localhost:8000/health'); exit(0 if r.status_code==200 else 1)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+volumes:
+  bag-terminal-data:
+    driver: local
+  bag-terminal-photos:
+    driver: local
+  bag-terminal-exports:
+    driver: local
+  bag-terminal-knowledge:
+    driver: local
+  bag-terminal-logs:
+    driver: local

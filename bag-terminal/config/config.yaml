@@ -1,0 +1,182 @@
+# =============================================================================
+# 挎包终端默认配置 — 铁路等保安全隔离架构 v2.0
+#
+# 核心变更:
+#   1. BLE 改为 1:1 严格配对模式 (max_connections=1, TX 功率限制 ≤10m)
+#   2. 移除 5G 模块和 SaaS 云端协同 (等保要求外网隔离)
+#   3. 数据导出改为 .dat 打包格式 + USB 有线接口
+#   4. 更大算力分析移至指定 PC/服务器 (USB 有线连接)
+#   5. 知识库/模型更新仅通过 USB 有线导入
+# =============================================================================
+
+# 服务配置
+server:
+  host: "0.0.0.0"
+  port: 8000
+  workers: 1
+  cors_origins:
+    - "http://10.0.0.*"
+    - "http://localhost"
+  log_level: "INFO"
+
+# BLE 网桥配置 — 1:1 严格配对模式
+ble:
+  # NUS Service UUID (Nordic UART Service)
+  service_uuid: "6e400001-b5a3-f393-e0a9-e50e24dcca9e"
+  tx_char_uuid: "6e400003-b5a3-f393-e0a9-e50e24dcca9e"
+  rx_char_uuid: "6e400002-b5a3-f393-e0a9-e50e24dcca9e"
+
+  # ── 1:1 严格配对 ──
+  max_connections: 1             # 仅允许一副眼镜连接
+  scan_duration: 5               # 缩短扫描时间 (1:1 模式)
+  scan_interval: 10              # 缩短扫描间隔 (快速重连)
+  connection_timeout: 10        # 连接超时 (秒)
+  mtu: 247                      # 最大传输单元
+
+  # 重连参数 (1:1 模式需快速恢复)
+  reconnect_interval: 3         # 重连间隔 (秒)
+  reconnect_max_retries: 20     # 最大重试次数
+
+  # 心跳 (缩短到 5 秒, 快速检测断连)
+  heartbeat_interval: 5
+  heartbeat_timeout: 15
+
+  # 帧协议
+  max_payload_size: 4096
+  max_reassembly_packets: 64
+  ack_timeout: 3
+  ack_max_retries: 3
+
+  # 设备过滤
+  device_name_prefix: "RailGlasses"
+
+  # ── 铁路安全增强 ──
+  # 预绑定 MAC 地址 (仅此地址的眼镜可连接, 空则匹配名称)
+  bonded_device_address: ""      # 生产环境必须填写, 如 "AA:BB:CC:DD:EE:FF"
+  # TX 功率控制 (dBm) — 控制通信距离 ≤10m
+  # BLE 5.0 范围: -20 ~ +8 dBm
+  # -6 dBm 在铁路环境中约 8-10 米 (含金属屏蔽衰减)
+  tx_power_dbm: -6
+  # 加密配对 (LE Secure Connections, AES-128)
+  pairing_mode: "le_secure"
+  encryption_key_size: 16
+  # 通信距离上限 (米)
+  max_range_meters: 10
+  # RSSI 阈值 (低于此值主动断连, 防止远距离窃听)
+  rssi_disconnect_threshold: -85
+
+# ─────────────────────────────────────────────────────────────
+# PC/服务器对接配置 (替代原 SaaS/5G 配置)
+# 数据仅通过 USB 有线连接到指定 PC/服务器
+# ─────────────────────────────────────────────────────────────
+pc_bridge:
+  # USB 网卡固定 IP (仅 USB 局域网, 不路由到外部)
+  usb_nic_ip: "10.0.0.1"
+  usb_nic_netmask: "255.255.255.0"
+  # PC 对接 API 端口 (仅绑定 USB 网卡)
+  api_port: 9090
+  # 串口调试设备
+  serial_port: "/dev/ttyACM0"
+  serial_baudrate: 115200
+  # 接口轮询间隔 (秒)
+  poll_interval: 2
+  # .dat 数据导出
+  export_dir: "/mnt/sdcard/bag-terminal/exports"
+  max_package_size_mb: 4096
+  hmac_key_env: "BAG_EXPORT_HMAC_KEY"
+  # Token 认证
+  token_ttl_seconds: 1800
+  token_length: 8
+  # 调试接口权限
+  debug_allowed_commands:
+    - "ls"
+    - "df"
+    - "free"
+    - "uptime"
+    - "dmesg"
+    - "ip"
+    - "ps"
+    - "cat"
+    - "grep"
+    - "sqlite3"
+    - "python3"
+  debug_command_timeout: 10
+  debug_rate_limit: 10
+
+# 涂鸦 IoT — 已禁用 (铁路等保要求外网隔离)
+tuya:
+  enabled: false
+
+# AI 模型配置
+models:
+  model_dir: "models"
+  # YOLOv8n 铁路缺陷检测
+  yolo:
+    model_path: "models/yolov8n_railway.onnx"
+    input_size: 320
+    confidence_threshold: 0.5
+    nms_threshold: 0.45
+    classes:
+      - "rail_crack"
+      - "rail_wear"
+      - "screw_loose"
+      - "screw_missing"
+      - "plate_damage"
+      - "ballast_abnormal"
+      - "vegetation_intrusion"
+      - "foreign_object"
+    # 热更新已禁用 — 仅通过 USB 从 PC 导入新模型
+    hot_update_interval: 0
+    model_registry_url: ""
+
+  # BGE-small-zh 嵌入模型
+  embedding:
+    model_path: "models/bge-small-zh.onnx"
+    max_seq_length: 512
+    embedding_dim: 768
+    batch_size: 16
+
+  # Phi-3-mini Q4 量化 LLM
+  llm:
+    model_path: "models/phi-3-mini-4k-instruct-q4.gguf"
+    n_ctx: 4096
+    n_gpu_layers: 0
+    n_threads: 4
+    max_tokens: 512
+    temperature: 0.3
+    top_p: 0.9
+    repeat_penalty: 1.1
+    stop_tokens:
+      - "<|end|>"
+      - "Human:"
+      - "Assistant:"
+
+# RAG 配置 — 本地离线模式
+rag:
+  qdrant_path: "data/qdrant"
+  collection_name: "railway_knowledge"
+  embedding_dim: 768
+  top_k: 5
+  score_threshold: 0.5
+  # 自动同步已禁用 — 仅通过 USB 从 PC 导入知识
+  sync_interval: 0
+  # PC 端知识库导入目录
+  pc_import_dir: "/mnt/sdcard/bag-terminal/knowledge_import"
+  max_context_chars: 2000
+
+# 存储配置
+storage:
+  db_path: "data/bag_terminal.db"
+  photo_dir: "storage/photos"
+  video_dir: "storage/videos"
+  max_disk_usage_gb: 32
+  cache_max_retries: 5
+  cache_retry_backoff: 2.0
+
+# 充电管理配置
+charging:
+  i2c_bus: 1
+  i2c_address: 0x6B
+  poll_interval: 5
+  temp_threshold: 60.0
+  low_battery_threshold: 20

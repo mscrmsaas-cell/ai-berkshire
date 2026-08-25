@@ -1,0 +1,48 @@
+# =============================================================================
+# 挎包终端 Python 依赖 — 铁路巡检智能眼镜系统
+# 目标平台: ARM64 (Raspberry Pi CM4)
+# Python: 3.11+
+# =============================================================================
+
+# --- Web 框架 ---
+fastapi==0.109.2
+uvicorn[standard]==0.27.1
+pydantic==2.6.1
+pydantic-settings==2.2.1
+
+# --- BLE 通信 ---
+bleak==0.21.1
+
+# --- AI 推理 ---
+onnxruntime==1.17.1
+# opencv-python-headless: 无 GUI 依赖, 适合 Docker
+opencv-python-headless==4.9.0.80
+numpy==1.26.4
+
+# --- RAG 引擎 ---
+qdrant-client==1.8.0
+# BGE-small-zh ONNX 嵌入模型 (模型文件单独下载, 不入包)
+
+# --- 本地 LLM ---
+llama-cpp-python==0.2.58
+
+# --- HTTP 客户端 (SaaS API 对接) ---
+httpx==0.26.0
+
+# --- MQTT (涂鸦云通信) ---
+paho-mqtt==1.6.1
+
+# --- 异步 SQLite ---
+aiosqlite==0.19.0
+
+# --- 日志 ---
+structlog==24.1.0
+
+# --- 工具库 ---
+PyYAML==6.0.1
+aiofiles==23.2.1
+tenacity==8.2.3
+
+# --- 开发/测试 (可选, 生产可移除) ---
+pytest==8.0.2
+pytest-asyncio==0.23.5

@@ -1,0 +1,622 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>移动智能算力终端节点（挎包）技术说明</title>
+<style>
+:root {
+  --bg: #0f1117;
+  --surface: #1a1d27;
+  --surface-2: #222634;
+  --border: #2d3144;
+  --text: #e1e4ec;
+  --text-muted: #8b90a0;
+  --accent: #4fc3f7;
+  --accent-2: #66bb6a;
+  --warning: #ffa726;
+  --danger: #ef5350;
+  --code-bg: #161821;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Noto Sans CJK SC', 'WenQuanYi Micro Hei', -apple-system, sans-serif;
+  line-height: 1.7;
+  padding: 2rem;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+h1 {
+  font-size: 1.8rem;
+  color: var(--accent);
+  border-bottom: 2px solid var(--border);
+  padding-bottom: 1rem;
+  margin-bottom: 2rem;
+}
+h2 {
+  font-size: 1.4rem;
+  color: var(--accent);
+  margin-top: 3rem;
+  margin-bottom: 1rem;
+  padding-left: 0.8rem;
+  border-left: 4px solid var(--accent);
+}
+h3 {
+  font-size: 1.15rem;
+  color: var(--text);
+  margin-top: 2rem;
+  margin-bottom: 0.8rem;
+}
+p { margin-bottom: 1rem; color: var(--text); }
+ul, ol { margin-left: 1.5rem; margin-bottom: 1rem; }
+li { margin-bottom: 0.4rem; }
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1rem 0;
+  background: var(--surface);
+  border-radius: 8px;
+  overflow: hidden;
+}
+th {
+  background: var(--surface-2);
+  color: var(--accent);
+  padding: 0.7rem 1rem;
+  text-align: left;
+  font-weight: 600;
+  font-size: 0.9rem;
+  border-bottom: 2px solid var(--border);
+}
+td {
+  padding: 0.6rem 1rem;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.9rem;
+}
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: var(--surface-2); }
+code {
+  background: var(--code-bg);
+  color: var(--accent-2);
+  padding: 0.15rem 0.4rem;
+  border-radius: 4px;
+  font-family: 'Cascadia Code', 'Fira Code', monospace;
+  font-size: 0.85rem;
+}
+pre {
+  background: var(--code-bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 1rem 1.2rem;
+  overflow-x: auto;
+  margin: 1rem 0;
+  font-size: 0.82rem;
+  line-height: 1.5;
+}
+pre code {
+  background: none;
+  color: var(--text);
+  padding: 0;
+}
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 1.5rem;
+  margin: 1rem 0;
+}
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1rem;
+  margin: 1rem 0;
+}
+.info-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 1.2rem;
+  border-left: 4px solid var(--accent);
+}
+.info-card.green { border-left-color: var(--accent-2); }
+.info-card.warn { border-left-color: var(--warning); }
+.info-card.danger { border-left-color: var(--danger); }
+.info-card h4 {
+  font-size: 1rem;
+  margin-bottom: 0.5rem;
+  color: var(--accent);
+}
+.info-card.green h4 { color: var(--accent-2); }
+.info-card.warn h4 { color: var(--warning); }
+.info-card.danger h4 { color: var(--danger); }
+.info-card p { font-size: 0.88rem; color: var(--text-muted); margin: 0; }
+.badge {
+  display: inline-block;
+  padding: 0.15rem 0.6rem;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  margin-right: 0.3rem;
+}
+.badge-blue { background: rgba(79,195,247,0.15); color: var(--accent); }
+.badge-green { background: rgba(102,187,106,0.15); color: var(--accent-2); }
+.badge-warn { background: rgba(255,167,38,0.15); color: var(--warning); }
+.badge-red { background: rgba(239,83,80,0.15); color: var(--danger); }
+.arch-box {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 1rem;
+  margin: 1rem 0;
+}
+.arch-label {
+  color: var(--accent);
+  font-weight: 600;
+  font-size: 0.85rem;
+  margin-bottom: 0.5rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+.section-divider {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 3rem 0;
+}
+.toc {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+}
+.toc h3 { margin-top: 0; color: var(--accent); }
+.toc ol { color: var(--text-muted); }
+.toc a { color: var(--accent); text-decoration: none; }
+.toc a:hover { text-decoration: underline; }
+.flow-step {
+  display: flex;
+  align-items: flex-start;
+  margin-bottom: 0.8rem;
+}
+.flow-step .num {
+  background: var(--accent);
+  color: var(--bg);
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.8rem;
+  margin-right: 0.8rem;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+.flow-step .content { font-size: 0.88rem; color: var(--text); }
+</style>
+</head>
+<body>
+
+<h1>移动智能算力终端节点（挎包）技术说明</h1>
+
+<div class="toc">
+<h3>目录</h3>
+<ol>
+<li><a href="#model">大模型选型</a></li>
+<li><a href="#compute">如何借助更大算力</a></li>
+<li><a href="#interaction">与眼镜的交互方式</a></li>
+<li><a href="#storage">数据存储方案</a></li>
+<li><a href="#security">数据与外部的安全隔离</a></li>
+</ol>
+</div>
+
+<!-- ===== 一、大模型选型 ===== -->
+<h2 id="model">一、大模型选型</h2>
+
+<p>挎包终端采用 <code>Microsoft Phi-3-mini-4k-instruct (Q4 量化 GGUF)</code> 作为核心大语言模型，配合 <code>BGE-small-zh</code> 嵌入模型和 <code>YOLOv8n</code> 视觉检测模型，构成端侧 AI 三件套。</p>
+
+<table>
+<thead><tr><th>模型</th><th>用途</th><th>格式</th><th>参数量</th><th>内存占用</th><th>推理引擎</th></tr></thead>
+<tbody>
+<tr><td><code>Phi-3-mini-4k-instruct</code></td><td>RAG 文本生成（问答、规程检索）</td><td>GGUF Q4</td><td>3.8B</td><td>~2GB</td><td>llama-cpp-python (CPU, ARM NEON)</td></tr>
+<tr><td><code>BGE-small-zh</code></td><td>文本向量化（知识库嵌入）</td><td>ONNX</td><td>33M</td><td>~130MB</td><td>ONNX Runtime</td></tr>
+<tr><td><code>YOLOv8n-railway</code></td><td>铁路缺陷视觉检测（8类）</td><td>ONNX</td><td>3.2M</td><td>~12MB</td><td>ONNX Runtime</td></tr>
+</tbody>
+</table>
+
+<h3>选型理由</h3>
+<div class="card-grid">
+<div class="info-card">
+<h4>Phi-3-mini Q4</h4>
+<p>微软出品，3.8B 参数在 Q4 量化后仅需 ~2GB 内存，CM4 的 4GB RAM 可承受；4096 tokens 上下文窗口足以处理铁路巡检规程问答；llama-cpp-python 在 ARM Cortex-A72 上有 NEON 指令集优化，4 线程推理 2-5 秒/次。</p>
+</div>
+<div class="info-card green">
+<h4>BGE-small-zh</h4>
+<p>中文语义检索效果优于同级英文模型，ONNX 格式推理速度快，768 维向量兼容 Qdrant 向量数据库。</p>
+</div>
+<div class="info-card">
+<h4>YOLOv8n</h4>
+<p>nano 版本适合嵌入式，320x320 输入在 CM4 上推理 &lt;500ms，8 类铁路缺陷覆盖裂纹/磨损/螺栓松动/螺栓缺失/扣件板损/道砟异常/植被侵入/异物侵限。</p>
+</div>
+</div>
+
+<h3>RAG 推理流程</h3>
+<pre><code>用户语音问题
+    │
+    ▼
+BGE-small-zh 向量化 ──→ Qdrant Top-5 检索 ──→ 组装 RAG Prompt
+                                                    │
+                                                    ▼
+                                         Phi-3-mini Q4 生成
+                                         (≤512 tokens, temp=0.3)
+                                                    │
+                                                    ▼
+                                         答案 + 来源 + 置信度
+                                         → BLE 回传眼镜显示</code></pre>
+
+<hr class="section-divider">
+
+<!-- ===== 二、如何借助更大算力 ===== -->
+<h2 id="compute">二、如何借助更大算力</h2>
+
+<p>挎包终端采用 <strong>云-边-端三级协同架构</strong>，在本地算力不足时可借助更大算力：</p>
+
+<div class="arch-box">
+<div class="arch-label">☁️ 云端 (SaaS + GPU)</div>
+<pre><code>┌──────────┐  ┌──────────┐  ┌──────────────┐
+│ 大模型    │  │ 知识库    │  │ 模型训练/    │
+│ GPT-4 /  │  │ Dify RAG │  │ 热更新注册   │
+│ Qwen-72B │  │ (完整版)  │  │ 中心         │
+└──────────┘  └──────────┘  └──────────────┘</code></pre>
+</div>
+
+<div class="arch-box">
+<div class="arch-label">📦 边缘端 — 挎包终端 (CM4, 本地推理)</div>
+<pre><code>┌──────────┐  ┌──────────┐  ┌──────────────┐
+│ Phi-3    │  │ Qdrant   │  │ YOLOv8n      │
+│ mini Q4  │  │ (本地)   │  │ (本地)       │
+└──────────┘  └──────────┘  └──────────────┘
+降级策略: 网络可用时 → 云端大模型; 网络不可用 → 本地 Phi-3</code></pre>
+</div>
+
+<div class="arch-box">
+<div class="arch-label">👓 端侧 — 智能眼镜 (ESP32-S3)</div>
+<pre><code>显示 + 语音交互 + 拍照触发</code></pre>
+</div>
+
+<h3>算力增强机制</h3>
+
+<div class="card-grid">
+<div class="info-card">
+<h4>1. 云端大模型回退</h4>
+<p>当 5G 网络可用时，挎包终端可将复杂查询转发到云端 SaaS 后端，调用 GPT-4 / Qwen-72B 等更大模型。本地 Phi-3 生成置信度 &lt; 0.4 时自动转云端。</p>
+</div>
+<div class="info-card green">
+<h4>2. 知识库增量同步</h4>
+<p>SaaS 后端维护完整知识库（Dify RAG），挎包终端每小时同步增量。新的铁路规程、作业指导书、故障案例自动下载到本地 Qdrant。</p>
+</div>
+<div class="info-card">
+<h4>3. YOLO 模型热更新</h4>
+<p>模型管理器每 5 分钟检查注册中心，下载新版本 YOLO 模型。SHA-256 校验 + 版本号比对，支持一键回滚。</p>
+</div>
+<div class="info-card green">
+<h4>4. 云端协同推理</h4>
+<p>高复杂度场景（如多目标关联分析）：挎包端 YOLOv8n 初筛 → 发现疑似缺陷 → 上传云端 YOLOv8x/GPT-4V 精检 → 结果回传缓存。</p>
+</div>
+</div>
+
+<hr class="section-divider">
+
+<!-- ===== 三、与眼镜的交互方式 ===== -->
+<h2 id="interaction">三、与眼镜的交互方式</h2>
+
+<p>挎包终端通过 <strong>BLE NUS (Nordic UART Service)</strong> 协议与智能眼镜通信，支持最多 4 副眼镜并发连接。</p>
+
+<h3>通信架构</h3>
+<pre><code>┌──────────────────┐                    ┌──────────────────────────┐
+│   智能眼镜        │                    │   挎包终端 (BleBridge)    │
+│   (ESP32-S3)     │                    │   (CM4, Central 角色)     │
+│                  │   BLE NUS          │                          │
+│  ┌────────────┐  │   Service:         │  ┌────────────────────┐  │
+│  │ NUS Server │◄─┼──6e400001-...─────┼─►│ NusClient #1~4    │  │
+│  │ (Peripheral)│  │   TX: 6e400003    │  │ (自动扫描+连接)    │  │
+│  └────────────┘  │   RX: 6e400002    │  └────────┬───────────┘  │
+│                  │   MTU: 247 bytes  │           │              │
+│  消息类型:       │   ACK + 重传       │  消息分发 → AI推理/RAG  │
+│  - 心跳          │◄──────────────────►│  - 帧分片重组          │
+│  - 拍照请求      │                    │  - ACK 确认             │
+│  - 图像数据      │                    │  - 指数退避重连         │
+│  - 语音查询      │                    │  → SQLite 缓存         │
+│  - 检测结果      │                    │  → 文件存储             │
+│  - 告警          │                    │                        │
+│  - 巡检控制      │                    │                        │
+└──────────────────┘                    └──────────────────────────┘</code></pre>
+
+<h3>BLE 帧格式</h3>
+<table>
+<thead><tr><th>字段</th><th>长度</th><th>说明</th></tr></thead>
+<tbody>
+<tr><td>Magic</td><td>2B</td><td><code>0x5A 0xA5</code>（帧头标识）</td></tr>
+<tr><td>MsgType</td><td>1B</td><td>消息类型枚举（心跳/拍照/图像/查询/告警等）</td></tr>
+<tr><td>SeqNum</td><td>2B</td><td>序列号（ACK 配对）</td></tr>
+<tr><td>Flags</td><td>1B</td><td>分片标志位</td></tr>
+<tr><td>PayloadLen</td><td>2B</td><td>payload 长度</td></tr>
+<tr><td>Payload</td><td>0~4096B</td><td>实际数据</td></tr>
+<tr><td>CRC16</td><td>2B</td><td>CRC-CCITT 校验</td></tr>
+</tbody>
+</table>
+
+<h3>消息类型与交互流程</h3>
+<table>
+<thead><tr><th>消息类型</th><th>方向</th><th>说明</th></tr></thead>
+<tbody>
+<tr><td><span class="badge badge-blue">HEARTBEAT</span></td><td>眼镜→挎包</td><td>心跳，含电量/温度</td></tr>
+<tr><td><span class="badge badge-blue">DEVICE_STATUS</span></td><td>眼镜→挎包</td><td>设备状态上报</td></tr>
+<tr><td><span class="badge badge-green">CAMERA_ATTACHED</span></td><td>眼镜→挎包</td><td>磁吸摄像头连接</td></tr>
+<tr><td><span class="badge badge-warn">CAPTURE_PHOTO</span></td><td>挎包→眼镜</td><td>触发拍照</td></tr>
+<tr><td><span class="badge badge-warn">CAMERA_FRAME</span></td><td>眼镜→挎包</td><td>图像数据（分片传输）</td></tr>
+<tr><td><span class="badge badge-blue">VOICE_QUERY</span></td><td>眼镜→挎包</td><td>语音问题文本</td></tr>
+<tr><td><span class="badge badge-green">RAG_ANSWER</span></td><td>挎包→眼镜</td><td>RAG 回答文本（显示+TTS）</td></tr>
+<tr><td><span class="badge badge-warn">DETECTION_RESULT</span></td><td>挎包→眼镜</td><td>YOLO 检测结果</td></tr>
+<tr><td><span class="badge badge-red">ALERT</span></td><td>挎包→眼镜</td><td>告警通知</td></tr>
+<tr><td><span class="badge badge-blue">INSPECTION_CTRL</span></td><td>挎包→眼镜</td><td>巡检任务控制</td></tr>
+</tbody>
+</table>
+
+<h3>典型交互流程</h3>
+<div class="card">
+<h4 style="color:var(--accent); margin-bottom:1rem;">拍照 + AI 检测流程</h4>
+<div class="flow-step"><div class="num">1</div><div class="content">眼镜端: 语音"拍照" → 发送 <code>CAPTURE_PHOTO_REQ</code></div></div>
+<div class="flow-step"><div class="num">2</div><div class="content">挎包端: 接收 → 触发 ESP32 拍照 → 接收 <code>CAMERA_FRAME_DATA</code>（分片传输）</div></div>
+<div class="flow-step"><div class="num">3</div><div class="content">挎包端: <code>YOLOv8n</code> 推理 → 缓存到 SQLite + 存储图片到 SD 卡</div></div>
+<div class="flow-step"><div class="num">4</div><div class="content">挎包端: 返回 <code>DETECTION_RESULT</code>（缺陷类型+位置+置信度）</div></div>
+<div class="flow-step"><div class="num">5</div><div class="content">眼镜端: OLED 显示检测结果 → 语音播报</div></div>
+</div>
+
+<div class="card">
+<h4 style="color:var(--accent-2); margin-bottom:1rem;">语音问答流程</h4>
+<div class="flow-step"><div class="num">1</div><div class="content">眼镜端: 语音识别 → 发送 <code>VOICE_QUERY</code>（文本）</div></div>
+<div class="flow-step"><div class="num">2</div><div class="content">挎包端: <code>BGE</code> 向量化 → <code>Qdrant</code> 检索 Top-5 → <code>Phi-3</code> 生成</div></div>
+<div class="flow-step"><div class="num">3</div><div class="content">挎包端: 返回 <code>RAG_ANSWER</code>（答案+来源）</div></div>
+<div class="flow-step"><div class="num">4</div><div class="content">眼镜端: OLED 显示答案 → TTS 播报</div></div>
+</div>
+
+<hr class="section-divider">
+
+<!-- ===== 四、数据存储方案 ===== -->
+<h2 id="storage">四、数据存储方案</h2>
+
+<p>挎包终端采用 <strong>三层存储架构</strong>：SQLite（结构化数据）+ 文件系统（媒体文件）+ Qdrant（向量数据）。</p>
+
+<h3>存储目录结构</h3>
+<pre><code>/mnt/sdcard/bag-terminal/
+├── data/
+│   ├── bag_terminal.db          ← SQLite 数据库 (8 张表)
+│   └── qdrant/                  ← Qdrant 向量数据库 (本地模式)
+├── photos/
+│   └── 2026-01-15/
+│       └── insp_{巡检ID}/
+│           ├── 20260115_103022_glass01_0001.jpg
+│           └── 20260115_103055_glass01_0002.jpg
+├── videos/
+│   └── 2026-01-15/
+│       └── insp_{巡检ID}/
+│           └── 20260115_103022_glass01_0001.h264
+├── alerts/
+│   └── 2026-01-15/
+│       └── alert_{告警ID}.jpg
+├── exports/                    ← 数据导出包 (USB 对接)
+├── logs/
+└── models/                     ← AI 模型文件
+    ├── yolo/
+    │   ├── yolov8n_railway.onnx
+    │   └── yolov8n_railway_v1.1.0.onnx  (历史版本)
+    ├── embedding/
+    │   └── bge-small-zh.onnx
+    ├── llm/
+    │   └── phi-3-mini-4k-instruct-q4.gguf
+    └── manifest.json           ← 模型版本清单</code></pre>
+
+<h3>SQLite 数据库（8 张表）</h3>
+<table>
+<thead><tr><th>表名</th><th>用途</th><th>关键字段</th></tr></thead>
+<tbody>
+<tr><td><code>glasses_devices</code></td><td>眼镜设备注册</td><td>tuya_device_id, ble_address, firmware_version, battery_level</td></tr>
+<tr><td><code>camera_module_events</code></td><td>摄像头连接记录</td><td>device_id, event_type, connected_at, frame_count</td></tr>
+<tr><td><code>inspection_tasks</code></td><td>巡检任务缓存</td><td>id, project_id, inspector_id, status, ai_findings</td></tr>
+<tr><td><code>inspection_photos_cache</code></td><td>照片缓存</td><td>inspection_id, local_path, upload_status, minio_object_name</td></tr>
+<tr><td><code>ai_detection_cache</code></td><td>AI 检测结果</td><td>photo_id, model_name, model_version, detection_json</td></tr>
+<tr><td><code>rag_query_cache</code></td><td>RAG 问答缓存</td><td>question, answer, sources, confidence, from_local</td></tr>
+<tr><td><code>alerts_cache</code></td><td>告警缓存</td><td>alert_type, severity, sync_priority, sync_status</td></tr>
+<tr><td><code>sync_state</code></td><td>同步状态追踪</td><td>table_name, record_id, sync_direction, sync_priority</td></tr>
+</tbody>
+</table>
+
+<div class="card-grid">
+<div class="info-card green">
+<h4>WAL 模式</h4>
+<p>支持并发读写，巡检过程中不阻塞数据写入。</p>
+</div>
+<div class="info-card">
+<h4>外键约束</h4>
+<p>保证数据完整性，设备-照片-检测-告警关联一致。</p>
+</div>
+<div class="info-card warn">
+<h4>同步优先级</h4>
+<p>告警(0) > 照片(1) > 检测(2) > RAG(3) > 遥测(4)，保证关键数据优先上传。</p>
+</div>
+</div>
+
+<h3>文件存储管理</h3>
+<ul>
+<li><strong>原子写入</strong>：先写 <code>.tmp</code> 文件 → <code>fsync</code> → <code>rename</code>，防止断电损坏</li>
+<li><strong>目录组织</strong>：按日期 + 巡检 ID 组织，便于检索和清理</li>
+<li><strong>磁盘监控</strong>：实时检测使用率，90% 触发清理，95% 标记为满</li>
+<li><strong>LRU 清理</strong>：按最近最少使用策略自动删除旧文件</li>
+<li><strong>SHA-256 校验</strong>：每个文件计算哈希，保证完整性</li>
+</ul>
+
+<hr class="section-divider">
+
+<!-- ===== 五、数据安全隔离 ===== -->
+<h2 id="security">五、数据与外部的安全隔离</h2>
+
+<p>这是整个系统的核心安全设计，采用 <strong>物理隔离 + 逻辑隔离 + 加密验证</strong> 三重保障。</p>
+
+<h3>安全隔离总览</h3>
+<pre><code>┌──────────────────────────────────────────────────────────────────┐
+│                        挎包终端 (CM4)                             │
+│                                                                  │
+│  ┌─────────────┐          ┌──────────────────┐                 │
+│  │  内部数据区  │          │  USB 导出通道     │                 │
+│  │             │          │  (物理隔离)       │                 │
+│  │ • SQLite DB │          │                  │                 │
+│  │ • 照片/视频  │  数据线   │  USB 网卡 usb0   │   USB 线缆      │
+│  │ • AI 模型   │  连接PC   │  IP: 10.0.0.1    │◄──────────────► │
+│  │ • Qdrant    │ ────────► │  FastAPI :9090   │               PC │
+│  │ • 告警数据   │          │  Token 认证       │               端 │
+│  │             │          │                  │               专 │
+│  │  ❌ 不可直接 │          │  CDC-ACM 串口     │               业 │
+│  │    对外传输  │          │  /dev/ttyACM0    │               应 │
+│  │             │          │  调试白名单       │               用 │
+│  └─────────────┘          └──────────────────┘                 │
+│         │                           │                          │
+│         │      iptables 防火墙        │                          │
+│         │  ┌──────────────────────┐  │                          │
+│         └──┤ FORWARD: DROP (双向)  ├──┘                          │
+│            │ NAT: DROP            │                              │
+│            │ DNS: DROP            │                              │
+│            └──────────────────────┘                              │
+│                                  │                              │
+│  ┌──────────────────┐            │                              │
+│  │  5G 网络接口      │◄───────────┘                              │
+│  │  (独立于USB通道)  │  ← iptables 禁止 USB↔5G 转发             │
+│  │  仅用于 SaaS 同步  │                                           │
+│  └──────────────────┘                                           │
+└──────────────────────────────────────────────────────────────────┘</code></pre>
+
+<h3>1. 物理隔离 — USB 有线通道</h3>
+<p>USB 数据导出通道与 5G 网络接口 <strong>物理隔离</strong>，通过 iptables 防火墙规则实现：</p>
+
+<table>
+<thead><tr><th>iptables 规则</th><th>作用</th></tr></thead>
+<tbody>
+<tr><td><code>FORWARD -i usb0 -j DROP</code></td><td>禁止 USB 接口向其他接口转发</td></tr>
+<tr><td><code>FORWARD -o usb0 -j DROP</code></td><td>禁止其他接口向 USB 接口转发</td></tr>
+<tr><td><code>INPUT -i usb0 -j ACCEPT</code></td><td>允许 USB 接口本地入站</td></tr>
+<tr><td><code>OUTPUT -o usb0 -j ACCEPT</code></td><td>允许 USB 接口本地出站</td></tr>
+<tr><td><code>nat POSTROUTING -o usb0 -j DROP</code></td><td>禁止 NAT 伪装通过 USB</td></tr>
+<tr><td><code>OUTPUT -o usb0 --dport 53 -j DROP</code></td><td>禁止 DNS 泄漏</td></tr>
+</tbody>
+</table>
+
+<div class="card" style="border-left:4px solid var(--accent);">
+<p><strong>关键点</strong>：USB 网卡 IP 固定为 <code>10.0.0.1/24</code>，PC 端获得 <code>10.0.0.2</code>，这是一个 <strong>封闭局域网</strong>，不路由到任何外部网络。</p>
+</div>
+
+<h3>2. 两种数据导出方式</h3>
+
+<div class="card-grid">
+<div class="info-card">
+<h4>方式 A：PC 专业应用直连 API</h4>
+<p>PC 通过 USB 数据线连接挎包后，在 PC 端专业应用中通过 HTTP API 访问数据：</p>
+<pre><code>PC 专业应用
+  → http://10.0.0.1:9090
+  → FastAPI (仅绑定 USB 网卡)</code></pre>
+</div>
+<div class="info-card green">
+<h4>方式 B：挎包端打包导出文件</h4>
+<p>挎包终端可将数据打包为 <code>.tar.gz</code> 文件，供 PC 通过 USB 拷贝传输：</p>
+<pre><code>挎包端: 打包 → manifest.json
+  + 签名 → .tar.gz
+PC 端: USB 挂载 → 拷贝
+  → 专业应用导入验证</code></pre>
+</div>
+</div>
+
+<h4>方式 A：PC 端 API 接口清单</h4>
+<table>
+<thead><tr><th>端点</th><th>方法</th><th>说明</th></tr></thead>
+<tbody>
+<tr><td><code>/auth/pair</code></td><td>POST</td><td>获取认证 Token（USB 连接时自动生成）</td></tr>
+<tr><td><code>/exports/create</code></td><td>POST</td><td>创建数据导出包</td></tr>
+<tr><td><code>/exports/{id}/download</code></td><td>GET</td><td>下载导出包</td></tr>
+<tr><td><code>/exports/{id}/verify</code></td><td>GET</td><td>验证导出包完整性</td></tr>
+<tr><td><code>/photos/list</code></td><td>GET</td><td>列出照片</td></tr>
+<tr><td><code>/photos/{id}/download</code></td><td>GET</td><td>下载单张照片</td></tr>
+<tr><td><code>/detections/list</code></td><td>GET</td><td>列出检测结果</td></tr>
+<tr><td><code>/alerts/list</code></td><td>GET</td><td>列出告警</td></tr>
+<tr><td><code>/rag/queries</code></td><td>GET</td><td>列出 RAG 问答记录</td></tr>
+<tr><td><code>/health</code></td><td>GET</td><td>健康检查</td></tr>
+</tbody>
+</table>
+
+<h4>Token 认证流程</h4>
+<div class="flow-step"><div class="num">1</div><div class="content">USB 连接时，挎包自动生成 8 位数字 Token（TTL 30 分钟）</div></div>
+<div class="flow-step"><div class="num">2</div><div class="content">Token 显示在挎包 OLED 屏上</div></div>
+<div class="flow-step"><div class="num">3</div><div class="content">PC 端用户在专业应用中输入 Token</div></div>
+<div class="flow-step"><div class="num">4</div><div class="content">后续请求携带 <code>X-Auth-Token</code> Header</div></div>
+<div class="flow-step"><div class="num">5</div><div class="content">USB 断开时 Token 自动撤销</div></div>
+
+<h4>方式 B：导出包结构</h4>
+<pre><code>export_20260115_103022_photos.tar.gz
+├── manifest.json           ← 清单 (导出ID/类型/文件列表/SHA-256)
+├── signature.sha256        ← HMAC-SHA256 签名
+├── photos/
+│   ├── 20260115_103022_glass01_0001.jpg
+│   └── ...
+├── detections.json         ← AI 检测结果
+├── alerts.json             ← 告警记录
+└── metadata.json           ← 巡检元数据</code></pre>
+
+<div class="card" style="border-left:4px solid var(--accent-2);">
+<p><strong>完整性验证</strong>：每个文件计算 SHA-256 哈希写入 manifest.json → 整个 manifest.json 用 HMAC-SHA256 签名 → PC 端专业应用导入时验证签名 + 逐文件校验哈希 → 密钥通过环境变量 <code>BAG_EXPORT_HMAC_KEY</code> 注入。</p>
+</div>
+
+<h3>3. 串口调试接口（预留）</h3>
+<p>CDC-ACM 串口 (<code>/dev/ttyACM0</code>) 提供受限调试通道：</p>
+
+<table>
+<thead><tr><th>特性</th><th>说明</th></tr></thead>
+<tbody>
+<tr><td>认证</td><td>需 Token 认证（与 API 共享）</td></tr>
+<tr><td>Shell 白名单</td><td><code>ls</code>, <code>df</code>, <code>free</code>, <code>uptime</code>, <code>dmesg</code>, <code>ip</code>, <code>ps</code>, <code>cat</code>, <code>grep</code>, <code>sqlite3</code>, <code>python3</code></td></tr>
+<tr><td>命令超时</td><td>10 秒</td></tr>
+<tr><td>速率限制</td><td>10 命令/秒</td></tr>
+<tr><td>日志审计</td><td>所有命令记录到日志</td></tr>
+</tbody>
+</table>
+
+<pre><code>> auth 12345678          ← Token 认证
+> status                 ← 系统状态
+> shell df -h            ← 查看磁盘
+> shell sqlite3 /app/data/bag_terminal.db "SELECT COUNT(*) FROM alerts_cache"
+> export create --type photos --date 2026-01-15
+> logs tail 50           ← 查看最近日志</code></pre>
+
+<h3>4. 5G 网络通道（独立于 USB）</h3>
+<p>5G 接口仅用于与 SaaS 后端同步，与 USB 数据通道完全隔离：</p>
+<ul>
+<li><strong>5G 通道</strong>：巡检结果上传、知识库同步、模型热更新、告警上报</li>
+<li><strong>USB 通道</strong>：本地数据导出、PC 对接、调试</li>
+<li>两个通道通过 iptables 规则互相 <code>DROP</code>，确保数据不会从 USB 通道泄漏到外部网络</li>
+</ul>
+
+<h3>安全设计总结</h3>
+<table>
+<thead><tr><th>层级</th><th>机制</th><th>实现</th></tr></thead>
+<tbody>
+<tr><td><span class="badge badge-blue">物理层</span></td><td>USB 有线连接</td><td>仅物理数据线可触发导出</td></tr>
+<tr><td><span class="badge badge-blue">网络层</span></td><td>iptables 防火墙</td><td>USB↔5G 双向 DROP</td></tr>
+<tr><td><span class="badge badge-green">接口层</span></td><td>FastAPI 绑定 USB 网卡</td><td>API 仅监听 10.0.0.1:9090</td></tr>
+<tr><td><span class="badge badge-warn">认证层</span></td><td>Token 配对</td><td>8位数字，TTL 30分钟，断开撤销</td></tr>
+<tr><td><span class="badge badge-green">完整性</span></td><td>SHA-256 + HMAC</td><td>逐文件哈希 + 清单签名</td></tr>
+<tr><td><span class="badge badge-warn">调试层</span></td><td>命令白名单</td><td>仅允许只读/安全命令</td></tr>
+<tr><td><span class="badge badge-red">审计层</span></td><td>日志记录</td><td>所有操作可追溯</td></tr>
+</tbody>
+</table>
+
+</body>
+</html>
