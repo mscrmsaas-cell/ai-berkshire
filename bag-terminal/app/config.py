@@ -36,48 +36,97 @@ class ServerConfig(BaseModel):
 
 
 class BleConfig(BaseModel):
-    """BLE 网桥配置"""
+    """BLE 网桥配置 — 1:1 配对模式 (铁路等保安全要求)
+
+    安全特性:
+        - 严格 1:1 配对 (max_connections=1, 仅允许一副眼镜)
+        - LE Secure Connections (AES-128 加密配对)
+        - TX 功率限制 (-12 dBm ~ 0 dBm, 控制通信距离 ≤10m)
+        - 绑定设备地址过滤 (仅允许预绑定的眼镜 MAC)
+        - 跳频扩频 (BLE 自适应跳频, 抗铁路电磁干扰)
+        - 心跳超时断连 (防止异常连接保持)
+    """
     service_uuid: str = "6e400001-b5a3-f393-e0a9-e50e24dcca9e"
     tx_char_uuid: str = "6e400003-b5a3-f393-e0a9-e50e24dcca9e"
     rx_char_uuid: str = "6e400002-b5a3-f393-e0a9-e50e24dcca9e"
-    scan_duration: int = 10
-    scan_interval: int = 30
-    max_connections: int = 4
-    connection_timeout: int = 15
-    mtu: int = 247
-    reconnect_interval: int = 5
-    reconnect_max_retries: int = 10
-    heartbeat_interval: int = 10
-    heartbeat_timeout: int = 30
+    # 1:1 严格配对模式 — 仅允许一副眼镜连接
+    max_connections: int = 1
+    # 扫描参数
+    scan_duration: int = 5            # 缩短扫描时间 (1:1 模式无需长时间扫描)
+    scan_interval: int = 10           # 缩短扫描间隔 (快速重连)
+    # 连接参数
+    connection_timeout: int = 10     # 连接超时 (秒)
+    mtu: int = 247                   # 最大传输单元
+    # 重连参数
+    reconnect_interval: int = 3      # 重连间隔 (秒, 1:1 模式需快速恢复)
+    reconnect_max_retries: int = 20  # 最大重试次数 (增加到 20 次保证可靠性)
+    # 心跳
+    heartbeat_interval: int = 5      # 心跳间隔 (缩短到 5 秒, 快速检测断连)
+    heartbeat_timeout: int = 15      # 心跳超时 (15 秒, 超过则断开重连)
+    # 帧协议
     max_payload_size: int = 4096
     max_reassembly_packets: int = 64
     ack_timeout: int = 3
     ack_max_retries: int = 3
+    # 设备过滤 — 仅允许预绑定的设备名称前缀
     device_name_prefix: str = "RailGlasses"
+    # ── 铁路安全增强参数 ──
+    # 绑定设备 MAC 地址 (仅允许此地址的眼镜连接, 空则匹配名称前缀)
+    bonded_device_address: str = ""  # 预绑定 MAC (如 "AA:BB:CC:DD:EE:FF")
+    # TX 功率控制 (dBm, 控制通信距离 ≤10m)
+    # BLE 5.0 TX 功率范围: -20 ~ +8 dBm
+    # -12 dBm ≈ 10 米视距 (开阔环境)
+    # 0 dBm ≈ 15-20 米 (铁路环境中衰减更快, 适合 ≤10m)
+    tx_power_dbm: int = -6           # 保守设置, 确保 ≤10m
+    # 加密配对方式 (LE Secure Connections)
+    pairing_mode: str = "le_secure"  # le_secure / legacy / none
+    # 配对加密密钥位数
+    encryption_key_size: int = 16    # AES-128
+    # 通信距离上限 (米, 用于日志和告警)
+    max_range_meters: int = 10
+    # RSSI 阈值 (低于此值认为超出安全距离, 主动断连)
+    rssi_disconnect_threshold: int = -85  # dBm
 
 
-class SaasConfig(BaseModel):
-    """SaaS API 对接配置"""
-    api_url: str = "http://saas.local:8000/api/v1"
-    api_timeout: int = 30
-    auth_username: str = "bag-terminal"
-    auth_password: str = ""
-    max_retries: int = 3
-    retry_backoff: float = 2.0
-    sync_priority: list[str] = Field(
-        default_factory=lambda: ["alerts", "photos", "detections", "rag", "telemetry"]
+class PcBridgeConfig(BaseModel):
+    """指定 PC/服务器对接配置 (替代原 SaaS/5G 配置)
+
+    数据仅通过 USB 有线连接到指定 PC/服务器, 不经任何外部网络。
+    """
+    # PC 对接 API 端口 (仅绑定 USB 网卡 10.0.0.1)
+    api_port: int = 9090
+    # 数据导出目录
+    export_dir: str = "/mnt/sdcard/bag-terminal/exports"
+    # .dat 包最大大小 (MB)
+    max_package_size_mb: int = 4096
+    # HMAC 签名密钥 (从环境变量读取)
+    hmac_key_env: str = "BAG_EXPORT_HMAC_KEY"
+    # Token 认证
+    token_ttl_seconds: int = 1800
+    token_length: int = 8
+    # 串口调试
+    serial_port: str = "/dev/ttyACM0"
+    serial_baudrate: int = 115200
+    # 调试命令白名单
+    debug_allowed_commands: list[str] = Field(
+        default_factory=lambda: [
+            "ls", "df", "free", "uptime", "dmesg",
+            "ip", "ps", "cat", "grep", "sqlite3", "python3",
+        ]
     )
+    debug_command_timeout: int = 10
+    debug_rate_limit: int = 10
 
 
 class TuyaConfig(BaseModel):
-    """涂鸦 IoT 配置"""
-    enabled: bool = False
-    mqtt_broker: str = "m1.tuyacn.com"
+    """涂鸦 IoT 配置 — 已禁用 (铁路等保要求外网隔离)"""
+    enabled: bool = False  # 强制禁用, 不可开启
+    mqtt_broker: str = ""
     mqtt_port: int = 1883
     mqtt_client_id: str = ""
     mqtt_username: str = ""
     mqtt_password: str = ""
-    device_config_path: str = "config/tuya_device_config.json"
+    device_config_path: str = ""
 
 
 class YoloModelConfig(BaseModel):
@@ -98,8 +147,8 @@ class YoloModelConfig(BaseModel):
             "foreign_object",
         ]
     )
-    hot_update_interval: int = 300
-    model_registry_url: str = ""
+    hot_update_interval: int = 0  # 0 = 禁用云端热更新, 仅 USB 导入
+    model_registry_url: str = ""  # 已清空, 不连接外部服务器
 
 
 class EmbeddingModelConfig(BaseModel):
@@ -134,14 +183,16 @@ class ModelsConfig(BaseModel):
 
 
 class RagConfig(BaseModel):
-    """RAG 引擎配置"""
+    """RAG 引擎配置 — 本地离线模式 (无云端同步)"""
     qdrant_path: str = "data/qdrant"
     collection_name: str = "railway_knowledge"
     embedding_dim: int = 768
     top_k: int = 5
     score_threshold: float = 0.5
-    sync_interval: int = 3600
-    saas_dify_url: str = "http://saas.local:8000/api/v1/rag/datasets"
+    # 知识库同步已移除云端, 改为 USB 有线从 PC 导入
+    sync_interval: int = 0  # 0 = 禁用自动同步, 仅 USB 触发
+    # PC 端知识库导入目录 (USB 挂载时可访问)
+    pc_import_dir: str = "/mnt/sdcard/bag-terminal/knowledge_import"
     max_context_chars: int = 2000
 
 
@@ -162,14 +213,6 @@ class ChargingConfig(BaseModel):
     poll_interval: int = 5
     temp_threshold: float = 60.0
     low_battery_threshold: int = 20
-
-
-class NetworkConfig(BaseModel):
-    """网络/5G 配置"""
-    modem_port: str = "/dev/ttyUSB2"
-    modem_baud: int = 115200
-    apn: str = "cmnet"
-    check_interval: int = 30
 
 
 # ---------------------------------------------------------------------------
@@ -199,13 +242,13 @@ class Settings(BaseSettings):
     # 子配置
     server: ServerConfig = Field(default_factory=ServerConfig)
     ble: BleConfig = Field(default_factory=BleConfig)
-    saas: SaasConfig = Field(default_factory=SaasConfig)
+    # PC/服务器对接配置 (替代原 SaaS 配置, 仅 USB 有线通道)
+    pc_bridge: PcBridgeConfig = Field(default_factory=PcBridgeConfig)
     tuya: TuyaConfig = Field(default_factory=TuyaConfig)
     models: ModelsConfig = Field(default_factory=ModelsConfig)
     rag: RagConfig = Field(default_factory=RagConfig)
     storage: StorageConfig = Field(default_factory=StorageConfig)
     charging: ChargingConfig = Field(default_factory=ChargingConfig)
-    network: NetworkConfig = Field(default_factory=NetworkConfig)
 
     # 配置文件路径
     config_file: str = "config/config.yaml"

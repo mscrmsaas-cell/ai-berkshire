@@ -38,14 +38,15 @@ async def lifespan(app: FastAPI):
     启动阶段:
         1. 加载配置
         2. 初始化 AI 模型管理器 (加载 YOLO/嵌入/LLM)
-        3. 初始化 RAG 引擎 (Qdrant + 向量库)
-        4. 启动 BLE 网桥 (扫描并连接眼镜)
-        5. (可选) 启动涂鸦网关 / SaaS 同步
+        3. 初始化 RAG 引擎 (Qdrant + 向量库, 本地离线模式)
+        4. 启动 BLE 网桥 (1:1 配对, 扫描并连接预绑定的眼镜)
+        5. 初始化数据安全隔离模块 (USB 有线 + .dat 导出)
 
     关闭阶段:
-        1. 停止 BLE 网桥 (断开所有连接)
+        1. 停止 BLE 网桥 (断开连接)
         2. 卸载 AI 模型
         3. 关闭 RAG 引擎
+        4. 停止安全隔离模块
     """
     settings = get_settings()
     logger.info("bag_terminal.starting", env=settings.env, version="1.0.0")
@@ -84,7 +85,7 @@ async def lifespan(app: FastAPI):
         # 后台任务启动扫描循环
         ble_task = asyncio.create_task(ble_bridge.start())
         app.state.ble_task = ble_task
-        logger.info("ble.bridge_started", max_connections=settings.ble.max_connections)
+        logger.info("ble.bridge_started", max_connections=settings.ble.max_connections, mode="1:1_pairing")
     except Exception as exc:
         logger.error("ble.bridge_start_failed", error=str(exc))
         app.state.ble_bridge = None
@@ -206,8 +207,8 @@ def create_app() -> FastAPI:
 
     app = FastAPI(
         title="铁路巡检智能眼镜 - 挎包终端",
-        description="BLE 网桥 + YOLOv8n 边缘推理 + 本地 RAG 引擎",
-        version="1.0.0",
+        description="BLE 1:1 配对 + YOLOv8n 边缘推理 + 本地 RAG + .dat 数据导出 (铁路等保安全隔离)",
+        version="2.0.0",
         lifespan=lifespan,
         docs_url="/docs",
         redoc_url="/redoc",

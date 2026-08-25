@@ -1,28 +1,39 @@
 """
-数据打包导出器
+数据打包导出器 — .dat 二进制容器格式 (铁路等保安全要求)
 
 功能:
-    - 将巡检数据从 SQLite + 文件系统打包为标准导出包
+    - 将巡检数据从 SQLite + 文件系统打包为 .dat 二进制容器
     - 支持按巡检 ID / 时间范围 / 数据类型筛选
-    - 生成 SHA-256 校验文件 + 数字签名
-    - 导出包格式: .tar.gz (标准 tar 包)
+    - 生成 SHA-256 校验 + HMAC-SHA256 签名
+    - 导出包格式: .dat (自定义二进制容器, 非标准压缩格式)
     - 支持全量导出和增量导出
 
-导出包结构:
-    export_20260825_143022.tar.gz
-    ├── manifest.json          — 导出清单 (元数据 + 文件列表 + SHA-256)
-    ├── signature.sha256       — 清单文件数字签名 (HMAC-SHA256)
-    ├── data/
-    │   ├── local.db           — SQLite 数据库快照 (仅导出选中数据)
-    │   ├── photos/            — 巡检照片
-    │   ├── videos/            — 巡检视频
-    │   ├── alerts/            — 告警截图
-    │   ├── detections.json    — AI 检测结果 (JSON)
-    │   ├── rag_queries.json   — RAG 问答记录
-    │   └── telemetry.json     — 遥测数据
-    └── metadata/
-        ├── device_info.json   — 设备信息
-        └── audit_log.json     — 审计日志
+.dat 文件格式:
+    ┌──────────────────────────────────────────────────────┐
+    │ 文件头 (Header) — 固定 64 字节                        │
+    │  Magic:      4B   0x52 0x41 0x49 0x4C ("RAIL")     │
+    │  Version:    2B   0x0002                             │
+    │  Flags:      2B   保留                               │
+    │  ManifestOffset: 8B  (manifest 段偏移)               │
+    │  ManifestSize:   8B  (manifest 段大小)               │
+    │  DataOffset:     8B  (data 段偏移)                   │
+    │  DataSize:       8B  (data 段大小)                   │
+    │  SignatureOffset: 8B (signature 段偏移)             │
+    │  SignatureSize:   8B  (signature 段大小)             │
+    │  Reserved:    8B   保留                               │
+    ├──────────────────────────────────────────────────────┤
+    │ Data 段 — 各文件二进制拼接                            │
+    │  每个文件:                                            │
+    │    PathLen:  2B   路径长度                            │
+    │    Path:     N B   相对路径 (UTF-8)                  │
+    │    FileSize: 8B   文件大小                           │
+    │    SHA256:  32B   文件哈希                           │
+    │    Content: M B   文件内容                           │
+    ├──────────────────────────────────────────────────────┤
+    │ Manifest 段 — JSON (导出元数据 + 文件列表)            │
+    ├──────────────────────────────────────────────────────┤
+    │ Signature 段 — HMAC-SHA256 (64 字节 hex)             │
+    └──────────────────────────────────────────────────────┘
 
 导出模式:
     1. 全量导出 — 所有未同步数据
@@ -36,10 +47,11 @@ from __future__ import annotations
 import asyncio
 import hashlib
 import hmac
+import io
 import json
 import os
 import shutil
-import tarfile
+import struct
 import tempfile
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
@@ -51,6 +63,13 @@ import structlog
 from app.storage.local_db import LocalDatabase
 
 logger = structlog.get_logger(__name__)
+
+# .dat 文件魔数和版本
+DAT_MAGIC = b"RAIL"              # 4 字节
+DAT_VERSION = 2                   # 2 字节
+DAT_HEADER_SIZE = 64              # 固定头大小
+DAT_HEADER_FORMAT = ">4sHHQQQQQQ"  # 大端序: magic(4) + version(2) + flags(2) + 6x uint64(8 each)
+DAT_SIGNATURE_SIZE = 64           # HMAC-SHA256 hex 字符串长度
 
 
 @dataclass
@@ -86,10 +105,16 @@ class ExportResult:
 
 class DataExporter:
     """
-    数据打包导出器
+    数据打包导出器 — .dat 二进制容器格式
 
-    将挎包终端中的巡检数据打包为标准 .tar.gz 文件,
-    供 PC 端通过 USB 有线连接下载, 或直接从 SD 卡拷贝。
+    将挎包终端中的巡检数据打包为 .dat 文件,
+    供 PC 端通过 USB 有线连接下载或直接从 SD 卡拷贝。
+
+    .dat 格式优势:
+        - 二进制封装, 无法直接打开查看 (安全性)
+        - 内嵌 SHA-256 + HMAC 签名 (完整性)
+        - 自定义格式, 需专用工具解析 (防篡改)
+        - 支持大文件 (>4GB, 使用 8 字节长度字段)
     """
 
     def __init__(self, settings: Any, db: LocalDatabase, config: ExportConfig | None = None) -> None:
@@ -98,7 +123,7 @@ class DataExporter:
         self._config = config or ExportConfig()
 
     async def export_full(self) -> ExportResult:
-        """全量导出 — 所有未同步到云端的数据"""
+        """全量导出 — 所有未同步数据"""
         logger.info("data_exporter.full_export_start")
         return await self._export_data(
             export_type="full",
@@ -132,93 +157,102 @@ class DataExporter:
         )
 
     async def _export_data(self, export_type: str, filters: dict[str, Any]) -> ExportResult:
-        """执行数据导出"""
+        """执行数据导出 — 生成 .dat 文件"""
         timestamp = datetime.now(timezone.utc)
         export_id = f"exp_{timestamp.strftime('%Y%m%d_%H%M%S')}"
         timestamp_str = timestamp.isoformat()
 
-        # 创建临时工作目录
+        # 创建临时工作目录 (收集数据文件)
         work_dir = Path(tempfile.mkdtemp(prefix=f"export_{export_id}_"))
-        data_dir = work_dir / "data"
-        meta_dir = work_dir / "metadata"
-        data_dir.mkdir(parents=True)
-        meta_dir.mkdir(parents=True)
 
         try:
-            # 1. 导出 SQLite 数据 (按筛选条件)
-            await self._export_sqlite_data(data_dir, filters)
+            # 1. 收集所有要导出的数据文件
+            file_entries: list[dict[str, Any]] = []
 
-            # 2. 导出文件 (照片/视频/告警截图)
+            # 1a. 导出 SQLite 数据为 JSON
+            db_json_path = work_dir / "database_export.json"
+            await self._export_sqlite_data(db_json_path, filters)
+            file_entries.append({"path": str(db_json_path.relative_to(work_dir))})
+
+            # 1b. 导出照片
             if self._config.include_photos:
-                await self._export_files(data_dir / "photos", filters, "photos")
+                photo_dir = work_dir / "photos"
+                photo_dir.mkdir(parents=True, exist_ok=True)
+                await self._export_files(photo_dir, filters, "photos", work_dir, file_entries)
+
+            # 1c. 导出视频
             if self._config.include_videos:
-                await self._export_files(data_dir / "videos", filters, "videos")
+                video_dir = work_dir / "videos"
+                video_dir.mkdir(parents=True, exist_ok=True)
+                await self._export_files(video_dir, filters, "videos", work_dir, file_entries)
+
+            # 1d. 导出告警截图
             if self._config.include_alerts:
-                await self._export_files(data_dir / "alerts", filters, "alerts")
+                alert_dir = work_dir / "alerts"
+                alert_dir.mkdir(parents=True, exist_ok=True)
+                await self._export_files(alert_dir, filters, "alerts", work_dir, file_entries)
 
-            # 3. 导出检测结果
-            await self._export_detections(data_dir / "detections.json", filters)
+            # 1e. 导出检测结果
+            detections_path = work_dir / "detections.json"
+            await self._export_detections(detections_path, filters)
+            file_entries.append({"path": str(detections_path.relative_to(work_dir))})
 
-            # 4. 导出 RAG 问答记录
-            await self._export_rag_queries(data_dir / "rag_queries.json", filters)
+            # 1f. 导出 RAG 问答记录
+            rag_path = work_dir / "rag_queries.json"
+            await self._export_rag_queries(rag_path, filters)
+            file_entries.append({"path": str(rag_path.relative_to(work_dir))})
 
-            # 5. 导出遥测数据
-            await self._export_telemetry(data_dir / "telemetry.json", filters)
+            # 1g. 导出遥测数据
+            telemetry_path = work_dir / "telemetry.json"
+            await self._export_telemetry(telemetry_path, filters)
+            file_entries.append({"path": str(telemetry_path.relative_to(work_dir))})
 
-            # 6. 生成设备信息
-            await self._write_device_info(meta_dir / "device_info.json")
+            # 2. 计算每个文件的 SHA-256
+            manifest_files = []
+            for entry in file_entries:
+                file_path = work_dir / entry["path"]
+                if file_path.exists():
+                    sha256 = await asyncio.to_thread(self._hash_file, file_path)
+                    size = file_path.stat().st_size
+                    manifest_files.append({
+                        "path": entry["path"],
+                        "size": size,
+                        "sha256": sha256,
+                    })
 
-            # 7. 生成审计日志
-            audit_log = {
-                "export_id": export_id,
-                "export_type": export_type,
-                "filters": filters,
-                "timestamp": timestamp_str,
-                "operator": "system",  # 可从 USB 连接认证中获取
-                "terminal_serial": getattr(self.settings, "device_id", "unknown"),
-            }
-            (meta_dir / "audit_log.json").write_text(
-                json.dumps(audit_log, ensure_ascii=False, indent=2),
-                encoding="utf-8",
-            )
-
-            # 8. 生成清单文件 (manifest.json)
-            file_list = await self._compute_file_hashes(work_dir)
+            # 3. 生成 manifest.json
             manifest = {
                 "export_id": export_id,
                 "export_type": export_type,
                 "created_at": timestamp_str,
                 "terminal_serial": getattr(self.settings, "device_id", "unknown"),
-                "terminal_version": "1.0.0",
+                "terminal_version": "2.0.0",
+                "format": "dat",
+                "format_version": DAT_VERSION,
                 "filters": filters,
-                "file_count": len(file_list),
-                "files": file_list,
+                "file_count": len(manifest_files),
+                "files": manifest_files,
             }
-            manifest_path = work_dir / "manifest.json"
-            manifest_path.write_text(
-                json.dumps(manifest, ensure_ascii=False, indent=2),
-                encoding="utf-8",
-            )
 
-            # 9. 生成 HMAC-SHA256 签名
-            manifest_bytes = manifest_path.read_bytes()
+            # 4. 生成 HMAC-SHA256 签名
+            manifest_bytes = json.dumps(manifest, ensure_ascii=False, sort_keys=True).encode("utf-8")
             signature = hmac.new(
                 self._config.hmac_key.encode(),
                 manifest_bytes,
                 hashlib.sha256,
             ).hexdigest()
-            sig_path = work_dir / "signature.sha256"
-            sig_path.write_text(signature)
 
-            # 10. 打包为 .tar.gz
+            # 5. 构建 .dat 二进制文件
             os.makedirs(self._config.export_dir, exist_ok=True)
-            package_name = f"export_{timestamp.strftime('%Y%m%d_%H%M%S')}.tar.gz"
+            package_name = f"export_{timestamp.strftime('%Y%m%d_%H%M%S')}.dat"
             package_path = Path(self._config.export_dir) / package_name
 
             await asyncio.to_thread(
-                self._create_tarball,
+                self._create_dat_file,
                 work_dir,
                 package_path,
+                manifest,
+                signature,
             )
 
             package_size = package_path.stat().st_size
@@ -228,13 +262,14 @@ class DataExporter:
                 export_id=export_id,
                 package=str(package_path),
                 size_bytes=package_size,
-                files=len(file_list),
+                files=len(manifest_files),
+                format="dat",
             )
 
             return ExportResult(
                 package_path=str(package_path),
                 package_size_bytes=package_size,
-                file_count=len(file_list),
+                file_count=len(manifest_files),
                 manifest=manifest,
                 sha256_signature=signature,
                 export_id=export_id,
@@ -245,54 +280,125 @@ class DataExporter:
             logger.error("data_exporter.export_failed", error=str(exc))
             raise
         finally:
-            # 清理临时目录
             shutil.rmtree(work_dir, ignore_errors=True)
 
-    async def _export_sqlite_data(self, data_dir: Path, filters: dict[str, Any]) -> None:
-        """导出 SQLite 数据为新的数据库文件"""
-        # 使用 sqlite3 的 .dump 或 ATTACH + SELECT 创建快照
-        db_path = data_dir / "local.db"
-        try:
-            # 导出特定表数据为 JSON (更通用)
-            export_data = {}
-            tables_to_export = [
-                "glasses_devices",
-                "camera_module_events",
-                "inspection_tasks",
-                "inspection_photos_cache",
-                "ai_detection_cache",
-                "rag_query_cache",
-                "alerts_cache",
-                "sync_state",
-            ]
-            for table in tables_to_export:
-                try:
-                    rows = await self._db.fetch_all(
-                        f"SELECT * FROM {table} WHERE 1=1",
-                        params=(),
-                    )
-                    if rows:
-                        export_data[table] = [
-                            dict(row) if hasattr(row, "keys") else row for row in rows
-                        ]
-                except Exception:
-                    export_data[table] = []
+    @staticmethod
+    def _create_dat_file(
+        work_dir: Path,
+        target: Path,
+        manifest: dict[str, Any],
+        signature: str,
+    ) -> None:
+        """
+        构建 .dat 二进制容器文件
 
-            (data_dir / "database_export.json").write_text(
-                json.dumps(export_data, ensure_ascii=False, indent=2, default=str),
-                encoding="utf-8",
-            )
-        except Exception as exc:
-            logger.warning("data_exporter.sqlite_export_error", error=str(exc))
+        结构:
+            [Header 64B] [Data段] [Manifest段] [Signature段]
+        """
+        # --- 1. 构建 Data 段 ---
+        data_buf = io.BytesIO()
+        file_list = manifest.get("files", [])
+        for file_info in file_list:
+            file_path = work_dir / file_info["path"]
+            if not file_path.exists():
+                continue
+            rel_path = file_info["path"].encode("utf-8")
+            content = file_path.read_bytes()
+            file_size = len(content)
+            sha256 = file_info["sha256"]
+
+            # 写入: PathLen(2B) + Path(NB) + FileSize(8B) + SHA256(32B hex) + Content(MB)
+            data_buf.write(struct.pack(">H", len(rel_path)))
+            data_buf.write(rel_path)
+            data_buf.write(struct.pack(">Q", file_size))
+            data_buf.write(bytes.fromhex(sha256))
+            data_buf.write(content)
+
+        data_bytes = data_buf.getvalue()
+        data_size = len(data_bytes)
+        data_offset = DAT_HEADER_SIZE
+
+        # --- 2. 构建 Manifest 段 ---
+        manifest_bytes = json.dumps(manifest, ensure_ascii=False, sort_keys=True).encode("utf-8")
+        manifest_size = len(manifest_bytes)
+        manifest_offset = data_offset + data_size
+
+        # --- 3. 构建 Signature 段 ---
+        signature_bytes = signature.encode("ascii")
+        # 补齐到 64 字节
+        if len(signature_bytes) < DAT_SIGNATURE_SIZE:
+            signature_bytes = signature_bytes.ljust(DAT_SIGNATURE_SIZE, b"\x00")
+        signature_size = len(signature_bytes)
+        signature_offset = manifest_offset + manifest_size
+
+        # --- 4. 构建文件头 ---
+        header = struct.pack(
+            DAT_HEADER_FORMAT,
+            DAT_MAGIC,
+            DAT_VERSION,
+            0,  # flags 保留
+            manifest_offset,
+            manifest_size,
+            data_offset,
+            data_size,
+            signature_offset,
+            signature_size,
+        )
+        # 补齐到 DAT_HEADER_SIZE
+        if len(header) < DAT_HEADER_SIZE:
+            header = header.ljust(DAT_HEADER_SIZE, b"\x00")
+
+        # --- 5. 写入 .dat 文件 ---
+        with open(target, "wb") as f:
+            f.write(header)
+            f.write(data_bytes)
+            f.write(manifest_bytes)
+            f.write(signature_bytes)
+
+    async def _export_sqlite_data(self, out_path: Path, filters: dict[str, Any]) -> None:
+        """导出 SQLite 数据为 JSON"""
+        export_data = {}
+        tables_to_export = [
+            "glasses_devices",
+            "camera_module_events",
+            "inspection_tasks",
+            "inspection_photos_cache",
+            "ai_detection_cache",
+            "rag_query_cache",
+            "alerts_cache",
+            "sync_state",
+        ]
+        for table in tables_to_export:
+            try:
+                rows = await self._db.fetch_all(
+                    f"SELECT * FROM {table} WHERE 1=1",
+                    params=(),
+                )
+                if rows:
+                    export_data[table] = [
+                        dict(row) if hasattr(row, "keys") else row for row in rows
+                    ]
+            except Exception:
+                export_data[table] = []
+
+        out_path.parent.mkdir(parents=True, exist_ok=True)
+        out_path.write_text(
+            json.dumps(export_data, ensure_ascii=False, indent=2, default=str),
+            encoding="utf-8",
+        )
 
     async def _export_files(
-        self, target_dir: Path, filters: dict[str, Any], file_type: str
+        self,
+        target_dir: Path,
+        filters: dict[str, Any],
+        file_type: str,
+        work_dir: Path,
+        file_entries: list[dict[str, Any]],
     ) -> None:
         """导出文件 (照片/视频/告警截图)"""
         target_dir.mkdir(parents=True, exist_ok=True)
         storage_root = Path(getattr(self.settings, "storage_root", "/mnt/sdcard/bag-terminal"))
 
-        # 映射文件类型到源目录
         source_dirs = {
             "photos": storage_root / "photos",
             "videos": storage_root / "videos",
@@ -302,9 +408,7 @@ class DataExporter:
         if not source_dir or not source_dir.exists():
             return
 
-        # 按 inspection_id 筛选
         inspection_id = filters.get("inspection_id")
-        # 按时间范围筛选
         start_date = filters.get("start_date")
         end_date = filters.get("end_date")
 
@@ -313,11 +417,8 @@ class DataExporter:
             for fname in files:
                 file_path = Path(root) / fname
 
-                # 筛选: 按巡检 ID
                 if inspection_id and inspection_id not in str(file_path):
                     continue
-
-                # 筛选: 按日期
                 if start_date:
                     try:
                         stat = file_path.stat()
@@ -335,12 +436,15 @@ class DataExporter:
                     except Exception:
                         pass
 
-                # 拷贝文件 (保留相对路径)
                 rel_path = file_path.relative_to(source_dir)
                 dest_path = target_dir / rel_path
                 dest_path.parent.mkdir(parents=True, exist_ok=True)
                 shutil.copy2(file_path, dest_path)
                 copied_count += 1
+
+                # 添加到文件列表
+                rel_to_work = dest_path.relative_to(work_dir)
+                file_entries.append({"path": str(rel_to_work)})
 
         logger.info("data_exporter.files_exported", file_type=file_type, count=copied_count)
 
@@ -392,27 +496,6 @@ class DataExporter:
             logger.warning("data_exporter.telemetry_error", error=str(exc))
             path.write_text("[]", encoding="utf-8")
 
-    async def _write_device_info(self, path: Path) -> None:
-        """写入设备信息"""
-        info = {
-            "device_id": getattr(self.settings, "device_id", "unknown"),
-            "device_name": "Rail-AR Bag Terminal",
-            "firmware_version": "1.0.0",
-            "hardware": "Raspberry Pi CM4",
-            "cpu": "ARM Cortex-A72",
-            "ram_mb": 4096,
-            "storage": "32GB eMMC + 256GB SD",
-            "models": {
-                "yolo": "yolov8n_railway.onnx",
-                "embedding": "bge-small-zh.onnx",
-                "llm": "phi-3-mini-4k-instruct-q4.gguf",
-            },
-        }
-        path.write_text(
-            json.dumps(info, ensure_ascii=False, indent=2),
-            encoding="utf-8",
-        )
-
     async def _compute_file_hashes(self, root: Path) -> list[dict[str, str]]:
         """计算工作目录中所有文件的 SHA-256"""
         file_list = []
@@ -440,13 +523,6 @@ class DataExporter:
                 h.update(chunk)
         return h.hexdigest()
 
-    @staticmethod
-    def _create_tarball(source: Path, target: Path) -> None:
-        """创建 tar.gz 压缩包"""
-        with tarfile.open(target, "w:gz") as tar:
-            for item in sorted(source.iterdir()):
-                tar.add(item, arcname=item.name)
-
     def list_exports(self) -> list[dict[str, Any]]:
         """列出所有可用的导出包"""
         export_dir = Path(self._config.export_dir)
@@ -454,7 +530,7 @@ class DataExporter:
             return []
 
         exports = []
-        for f in sorted(export_dir.glob("export_*.tar.gz"), reverse=True):
+        for f in sorted(export_dir.glob("export_*.dat"), reverse=True):
             stat = f.stat()
             exports.append({
                 "filename": f.name,
@@ -468,62 +544,127 @@ class DataExporter:
     async def delete_export(self, filename: str) -> bool:
         """删除指定导出包"""
         path = Path(self._config.export_dir) / filename
-        if path.exists() and path.suffix == ".tar.gz":
+        if path.exists() and path.suffix == ".dat":
             path.unlink()
             logger.info("data_exporter.export_deleted", filename=filename)
             return True
         return False
 
     async def verify_export(self, package_path: str) -> dict[str, Any]:
-        """验证导出包完整性 (SHA-256 + HMAC 签名)"""
+        """验证 .dat 导出包完整性 (SHA-256 + HMAC 签名)"""
         path = Path(package_path)
         if not path.exists():
             return {"valid": False, "error": "Package not found"}
 
-        # 解压到临时目录
-        work_dir = Path(tempfile.mkdtemp(prefix="verify_"))
         try:
-            with tarfile.open(path, "r:gz") as tar:
-                tar.extractall(work_dir)
+            with open(path, "rb") as f:
+                # 读取文件头
+                header = f.read(DAT_HEADER_SIZE)
+                if len(header) < DAT_HEADER_SIZE:
+                    return {"valid": False, "error": "Header too short"}
 
-            # 读取清单
-            manifest_path = work_dir / "manifest.json"
-            if not manifest_path.exists():
-                return {"valid": False, "error": "manifest.json not found"}
+                magic, version, flags, manifest_offset, manifest_size, \
+                    data_offset, data_size, sig_offset, sig_size = struct.unpack(
+                        DAT_HEADER_FORMAT, header[:struct.calcsize(DAT_HEADER_FORMAT)]
+                    )
 
-            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-            sig_path = work_dir / "signature.sha256"
+                if magic != DAT_MAGIC:
+                    return {"valid": False, "error": f"Invalid magic: {magic}"}
+                if version != DAT_VERSION:
+                    return {"valid": False, "error": f"Unsupported version: {version}"}
 
-            # 验证 HMAC 签名
-            if sig_path.exists():
-                expected_sig = sig_path.read_text().strip()
-                actual_sig = hmac.new(
+                # 读取 Manifest
+                f.seek(manifest_offset)
+                manifest_bytes = f.read(manifest_size)
+                manifest = json.loads(manifest_bytes.decode("utf-8"))
+
+                # 读取 Signature
+                f.seek(sig_offset)
+                signature = f.read(sig_size).rstrip(b"\x00").decode("ascii")
+
+                # 验证 HMAC 签名
+                expected_sig = hmac.new(
                     self._config.hmac_key.encode(),
-                    manifest_path.read_bytes(),
+                    manifest_bytes,
                     hashlib.sha256,
                 ).hexdigest()
-                if expected_sig != actual_sig:
+                if signature != expected_sig:
                     return {"valid": False, "error": "HMAC signature mismatch"}
 
-            # 验证文件 SHA-256
-            verified_files = 0
-            failed_files = []
-            for file_info in manifest.get("files", []):
-                file_path = work_dir / file_info["path"]
-                if file_path.exists():
-                    actual_hash = self._hash_file(file_path)
-                    if actual_hash == file_info["sha256"]:
+                # 验证 Data 段中每个文件
+                f.seek(data_offset)
+                verified_files = 0
+                failed_files = []
+                for file_info in manifest.get("files", []):
+                    # 读取 PathLen
+                    path_len_bytes = f.read(2)
+                    if len(path_len_bytes) < 2:
+                        break
+                    (path_len,) = struct.unpack(">H", path_len_bytes)
+
+                    # 读取 Path
+                    rel_path = f.read(path_len).decode("utf-8")
+
+                    # 读取 FileSize
+                    (file_size,) = struct.unpack(">Q", f.read(8))
+
+                    # 读取 SHA256
+                    stored_sha256 = f.read(32).hex()
+
+                    # 读取 Content
+                    content = f.read(file_size)
+
+                    # 计算 SHA256
+                    actual_sha256 = hashlib.sha256(content).hexdigest()
+                    if actual_sha256 == stored_sha256:
                         verified_files += 1
                     else:
-                        failed_files.append(file_info["path"])
+                        failed_files.append(rel_path)
 
-            return {
-                "valid": len(failed_files) == 0,
-                "verified_files": verified_files,
-                "total_files": len(manifest.get("files", [])),
-                "failed_files": failed_files,
-                "export_id": manifest.get("export_id", ""),
-                "export_type": manifest.get("export_type", ""),
-            }
-        finally:
-            shutil.rmtree(work_dir, ignore_errors=True)
+                return {
+                    "valid": len(failed_files) == 0,
+                    "verified_files": verified_files,
+                    "total_files": len(manifest.get("files", [])),
+                    "failed_files": failed_files,
+                    "export_id": manifest.get("export_id", ""),
+                    "export_type": manifest.get("export_type", ""),
+                    "format": "dat",
+                    "format_version": version,
+                }
+
+        except Exception as exc:
+            logger.error("data_exporter.verify_error", error=str(exc))
+            return {"valid": False, "error": str(exc)}
+
+    @staticmethod
+    def read_dat_header(package_path: str) -> dict[str, Any]:
+        """读取 .dat 文件头信息 (不解压)"""
+        path = Path(package_path)
+        if not path.exists():
+            return {"error": "Package not found"}
+
+        try:
+            with open(path, "rb") as f:
+                header = f.read(DAT_HEADER_SIZE)
+                if len(header) < struct.calcsize(DAT_HEADER_FORMAT):
+                    return {"error": "Header too short"}
+
+                magic, version, flags, manifest_offset, manifest_size, \
+                    data_offset, data_size, sig_offset, sig_size = struct.unpack(
+                        DAT_HEADER_FORMAT, header[:struct.calcsize(DAT_HEADER_FORMAT)]
+                    )
+
+                return {
+                    "magic": magic.decode("ascii", errors="replace"),
+                    "version": version,
+                    "flags": flags,
+                    "data_offset": data_offset,
+                    "data_size": data_size,
+                    "manifest_offset": manifest_offset,
+                    "manifest_size": manifest_size,
+                    "signature_offset": sig_offset,
+                    "signature_size": sig_size,
+                    "file_size": path.stat().st_size,
+                }
+        except Exception as exc:
+            return {"error": str(exc)}
