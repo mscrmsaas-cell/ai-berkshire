@@ -37,6 +37,8 @@ services:
       - QDRANT_PATH=/app/data/qdrant
       - TUYA_ENABLED=false
       - MQTT_BROKER=mqtt://tuya-mqtt.local:1883
+      # 数据安全隔离: HMAC 签名密钥 (导出包完整性校验)
+      - BAG_EXPORT_HMAC_KEY=${BAG_EXPORT_HMAC_KEY:-railway-ar-glasses-default-key}
 
     # 卷挂载
     volumes:
@@ -48,6 +50,8 @@ services:
       - bag-terminal-data:/app/data
       # 照片/视频存储 (SD 卡或外部存储)
       - bag-terminal-photos:/app/storage/photos
+      # 导出包存储 (PC 通过 USB 下载)
+      - bag-terminal-exports:/mnt/sdcard/bag-terminal/exports
       # 日志
       - bag-terminal-logs:/app/logs
       # D-Bus socket (BlueZ 通信)
@@ -65,6 +69,8 @@ services:
       - /dev/bus/usb:/dev/bus/usb
       - /dev/i2c-1:/dev/i2c-1
       - /dev/ttyUSB0:/dev/ttyUSB0
+      # USB 串口调试通道 (CDC-ACM, PC 连接时枚举)
+      - /dev/ttyACM0:/dev/ttyACM0
 
     # 日志限制
     logging:
@@ -95,6 +101,8 @@ volumes:
   bag-terminal-data:
     driver: local
   bag-terminal-photos:
+    driver: local
+  bag-terminal-exports:
     driver: local
   bag-terminal-logs:
     driver: local

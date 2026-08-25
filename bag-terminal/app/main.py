@@ -90,12 +90,90 @@ async def lifespan(app: FastAPI):
         app.state.ble_bridge = None
         app.state.ble_task = None
 
+    # --- 初始化数据安全隔离模块 ---
+    try:
+        from app.security.usb_manager import UsbConnectionManager
+        from app.security.data_exporter import DataExporter, ExportConfig
+        from app.security.pc_api import create_pc_api_app, TokenManager
+        from app.security.serial_debug import SerialDebugInterface
+        from app.storage.local_db import LocalDatabase
+
+        usb_manager = UsbConnectionManager()
+        app.state.usb_manager = usb_manager
+
+        # 本地数据库
+        local_db = LocalDatabase()
+        await local_db.connect()
+        app.state.local_db = local_db
+
+        # 数据导出器
+        export_config = ExportConfig()
+        data_exporter = DataExporter(settings, local_db, export_config)
+        app.state.data_exporter = data_exporter
+
+        # PC 对接 API (仅绑定 USB 网卡)
+        pc_api = create_pc_api_app(usb_manager, data_exporter, local_db, settings)
+        app.state.pc_api = pc_api
+
+        # Token 管理器
+        token_manager = TokenManager()
+        app.state.token_manager = token_manager
+
+        # 串口调试接口
+        serial_debug = SerialDebugInterface(
+            token_manager=token_manager,
+            data_exporter=data_exporter,
+            db=local_db,
+            settings=settings,
+        )
+        app.state.serial_debug = serial_debug
+
+        # 启动 USB 连接监控
+        await usb_manager.start()
+
+        # USB 连接时自动生成 Token + 启动 PC API
+        async def _on_usb_connect(state):
+            logger.info("security.usb_connected", mode=state.mode.value, nic=state.nic_name)
+            # 生成新 Token (显示在 OLED 上)
+            token = token_manager.generate_token()
+            logger.info("security.token_generated", token_prefix=token[:4])
+            # TODO: 在 OLED 屏显示 Token
+
+            # 启动串口调试
+            await serial_debug.start()
+
+        async def _on_usb_disconnect():
+            logger.info("security.usb_disconnected")
+            await serial_debug.stop()
+            # 撤销所有 Token
+            if hasattr(token_manager, '_tokens'):
+                token_manager._tokens.clear()
+
+        usb_manager.on_connect(_on_usb_connect)
+        usb_manager.on_disconnect(_on_usb_disconnect)
+
+        logger.info("security.module_initialized", usb_ip=UsbConnectionManager.USB_NIC_IP)
+
+    except Exception as exc:
+        logger.error("security.module_init_failed", error=str(exc))
+        app.state.usb_manager = None
+        app.state.local_db = None
+        app.state.data_exporter = None
+
     logger.info("bag_terminal.ready", host=settings.server.host, port=settings.server.port)
 
     yield
 
     # --- 关闭阶段 ---
     logger.info("bag_terminal.shutting_down")
+
+    # 停止安全隔离模块
+    if usb_mgr := getattr(app.state, "usb_manager", None):
+        await usb_mgr.stop()
+    if serial_dbg := getattr(app.state, "serial_debug", None):
+        await serial_dbg.stop()
+    if local_db_obj := getattr(app.state, "local_db", None):
+        await local_db_obj.close()
 
     # 停止 BLE 网桥
     if app.state.ble_bridge:

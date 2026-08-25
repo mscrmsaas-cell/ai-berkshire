@@ -155,3 +155,59 @@ network:
   modem_baud: 115200
   apn: "cmnet"
   check_interval: 30
+
+# ─────────────────────────────────────────────────────────────
+# 数据安全隔离配置
+# ─────────────────────────────────────────────────────────────
+security:
+  # USB 有线数据导出通道 (与 5G 网络物理隔离)
+  usb:
+    # USB 网卡固定 IP (仅 USB 局域网, 不路由到外部)
+    nic_ip: "10.0.0.1"
+    nic_netmask: "255.255.255.0"
+    # PC 对接 API 端口 (仅绑定 USB 网卡)
+    pc_api_port: 9090
+    # 串口调试设备
+    serial_port: "/dev/ttyACM0"
+    serial_baudrate: 115200
+    # 接口轮询间隔 (秒)
+    poll_interval: 2
+
+  # 数据打包导出
+  export:
+    # 导出文件存放目录
+    export_dir: "/mnt/sdcard/bag-terminal/exports"
+    # HMAC 签名密钥 (从环境变量 BAG_EXPORT_HMAC_KEY 读取)
+    # 生产环境必须修改!
+    hmac_key_env: "BAG_EXPORT_HMAC_KEY"
+    # 导出包最大大小 (MB)
+    max_package_size_mb: 4096
+    include_photos: true
+    include_videos: true
+    include_alerts: true
+
+  # Token 认证 (USB 连接配对)
+  token:
+    ttl_seconds: 1800          # Token 有效期 30 分钟
+    max_uses: 1000             # 单 Token 最大使用次数
+    length: 8                  # Token 长度 (数字)
+
+  # 调试接口权限
+  debug:
+    # Shell 命令白名单
+    allowed_commands:
+      - "ls"
+      - "df"
+      - "free"
+      - "uptime"
+      - "dmesg"
+      - "ip"
+      - "ps"
+      - "cat"
+      - "grep"
+      - "sqlite3"
+      - "python3"
+    # 命令执行超时 (秒)
+    command_timeout: 10
+    # 速率限制 (每秒最大命令数)
+    rate_limit_per_second: 10
